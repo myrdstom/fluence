@@ -16,7 +16,7 @@ export const store = mutation({
     };
     const existing = await getCurrentUser(ctx);
     if (existing) {
-      await ctx.db.patch(existing._id, profile);
+      await ctx.db.patch("users", existing._id, profile);
       return existing._id;
     }
     return ctx.db.insert("users", {
@@ -46,11 +46,13 @@ export const me = query({
 export const setRole = internalMutation({
   args: { email: v.string(), role: roleValidator },
   handler: async (ctx, { email, role }) => {
-    const users = await ctx.db.query("users").collect();
-    const matches = users.filter((user) => user.email === email);
+    const matches = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .take(2);
     if (matches.length !== 1) {
-      throw new ConvexError(`Expected one user for email, found ${matches.length}`);
+      throw new ConvexError("Expected exactly one user with that email");
     }
-    await ctx.db.patch(matches[0]._id, { role });
+    await ctx.db.patch("users", matches[0]._id, { role });
   },
 });

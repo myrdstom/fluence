@@ -43,3 +43,9 @@ next-env.d.ts
 
 # convex local deployments
 .convex/
+
+# editor and agent tooling
+.idea/
+.agents/
+.claude/skills/
+skills-lock.json

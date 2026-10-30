@@ -1,7 +1,8 @@
 import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SyncUser } from "@/components/sync-user";
+import { RequireUser } from "@/components/require-user";
 
 const NAV_LINKS = [
   { href: "/tools", label: "All tools" },
@@ -10,10 +11,12 @@ const NAV_LINKS = [
   { href: "/incoming", label: "Incoming" },
 ];
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  // Redirects signed-out visitors. This is UX; Convex functions enforce authorization.
+  await auth.protect();
+
   return (
     <>
-      <SyncUser />
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link href="/" className="font-semibold tracking-tight">
@@ -33,7 +36,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <UserButton />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-4xl px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-4xl px-4 py-8">
+        <RequireUser>{children}</RequireUser>
+      </main>
     </>
   );
 }

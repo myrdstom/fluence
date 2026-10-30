@@ -17,7 +17,9 @@ export default defineSchema({
     email: v.optional(v.string()),
     role: roleValidator,
     isTrustedLender: v.boolean(),
-  }).index("by_token", ["tokenIdentifier"]),
+  })
+    .index("by_tokenIdentifier", ["tokenIdentifier"])
+    .index("by_email", ["email"]),
 
   tools: defineTable({
     ownerId: v.id("users"),
@@ -27,25 +29,29 @@ export default defineSchema({
     description: v.string(),
     status: toolStatusValidator,
   })
-    .index("by_owner", ["ownerId"])
+    .index("by_ownerId", ["ownerId"])
     .index("by_status", ["status"])
-    .index("by_category_status", ["category", "status"]),
+    .index("by_category", ["category"]),
 
   borrowRequests: defineTable({
     toolId: v.id("tools"),
     borrowerId: v.id("users"),
     // Denormalized from the tool so "incoming requests" needs no join.
     ownerId: v.id("users"),
+    // Kept on the request so history survives the tool being deleted.
+    toolName: v.string(),
     // Calendar dates as YYYY-MM-DD: they sort lexically and carry no timezone.
     startDate: v.string(),
     endDate: v.string(),
     status: requestStatusValidator,
     returnedAt: v.optional(v.number()),
   })
-    .index("by_borrower", ["borrowerId"])
-    .index("by_owner_status", ["ownerId", "status"])
-    .index("by_tool_status", ["toolId", "status"])
-    .index("by_status_endDate", ["status", "endDate"]),
+    .index("by_borrowerId", ["borrowerId"])
+    .index("by_borrowerId_and_toolId_and_status", ["borrowerId", "toolId", "status"])
+    .index("by_ownerId", ["ownerId"])
+    .index("by_ownerId_and_status", ["ownerId", "status"])
+    .index("by_toolId_and_status", ["toolId", "status"])
+    .index("by_status_and_endDate", ["status", "endDate"]),
 
   automationEvents: defineTable({
     requestId: v.id("borrowRequests"),
@@ -55,6 +61,6 @@ export default defineSchema({
     idempotencyKey: v.string(),
     occurredAt: v.number(),
   })
-    .index("by_idempotency_key", ["idempotencyKey"])
-    .index("by_request", ["requestId"]),
+    .index("by_idempotencyKey", ["idempotencyKey"])
+    .index("by_requestId", ["requestId"]),
 });

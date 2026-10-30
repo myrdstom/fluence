@@ -10,7 +10,10 @@
 
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_borrowRequests from "../lib/borrowRequests.js";
 import type * as lib_constants from "../lib/constants.js";
+import type * as lib_dates from "../lib/dates.js";
+import type * as requests from "../requests.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
@@ -23,7 +26,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/borrowRequests": typeof lib_borrowRequests;
   "lib/constants": typeof lib_constants;
+  "lib/dates": typeof lib_dates;
+  requests: typeof requests;
   tools: typeof tools;
   users: typeof users;
 }>;

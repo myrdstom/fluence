@@ -1,18 +1,33 @@
-import { v, type Infer } from "convex/values";
+import { v } from "convex/values";
 
-export const CATEGORIES = [
-  "power_tools",
-  "hand_tools",
-  "garden",
-  "kitchen",
-  "camping",
-  "other",
-] as const;
+export const CATEGORY_LABELS = {
+  power_tools: "Power tools",
+  hand_tools: "Hand tools",
+  garden: "Garden",
+  kitchen: "Kitchen",
+  camping: "Camping",
+  other: "Other",
+} as const;
+export type Category = keyof typeof CATEGORY_LABELS;
+export const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 
 export const categoryValidator = v.union(
-  ...CATEGORIES.map((category) => v.literal(category)),
+  v.literal("power_tools"),
+  v.literal("hand_tools"),
+  v.literal("garden"),
+  v.literal("kitchen"),
+  v.literal("camping"),
+  v.literal("other"),
 );
-export type Category = Infer<typeof categoryValidator>;
+
+export const CONDITION_LABELS = {
+  new: "New",
+  good: "Good",
+  fair: "Fair",
+  worn: "Worn",
+} as const;
+export type Condition = keyof typeof CONDITION_LABELS;
+export const CONDITIONS = Object.keys(CONDITION_LABELS) as Condition[];
 
 export const conditionValidator = v.union(
   v.literal("new"),
@@ -20,6 +35,12 @@ export const conditionValidator = v.union(
   v.literal("fair"),
   v.literal("worn"),
 );
+
+export const TOOL_NAME_MAX_LENGTH = 80;
+export const TOOL_DESCRIPTION_MAX_LENGTH = 500;
+
+/** Longest loan a borrower can request, to keep tools circulating. */
+export const MAX_LOAN_DAYS = 90;
 
 export const roleValidator = v.union(v.literal("user"), v.literal("admin"));
 

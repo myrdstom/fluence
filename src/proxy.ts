@@ -1,13 +1,7 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-const isPublicRoute = createRouteMatcher(["/"]);
-
-// Route protection is a UX layer. Authorization is enforced in Convex functions.
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
-  }
-});
+// Only establishes the Clerk session. Sign-in redirects live in the (app) layout.
+export default clerkMiddleware();
 
 export const config = {
   matcher: [

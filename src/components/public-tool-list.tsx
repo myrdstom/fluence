@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { CATEGORY_LABELS } from "../../convex/lib/constants";
 
 export function PublicToolList() {
   const tools = useQuery(api.tools.listPublic);
@@ -18,7 +19,7 @@ export function PublicToolList() {
         <li key={tool._id} className="flex items-center justify-between py-3">
           <span className="font-medium">{tool.name}</span>
           <span className="text-sm text-zinc-500">
-            {tool.category.replace("_", " ")}
+            {CATEGORY_LABELS[tool.category]}
           </span>
         </li>
       ))}

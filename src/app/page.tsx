@@ -1,9 +1,7 @@
 import { Show, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { PublicToolList } from "@/components/public-tool-list";
-
-const buttonClass =
-  "inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300";
+import { buttonPrimary } from "@/lib/styles";
 
 export default function Home() {
   return (
@@ -15,13 +13,13 @@ export default function Home() {
       <div className="mt-6">
         <Show when="signed-out">
           <SignInButton mode="modal" forceRedirectUrl="/tools">
-            <button type="button" className={buttonClass}>
+            <button type="button" className={buttonPrimary}>
               Sign in to lend or borrow
             </button>
           </SignInButton>
         </Show>
         <Show when="signed-in">
-          <Link href="/tools" className={buttonClass}>
+          <Link href="/tools" className={buttonPrimary}>
             Go to tools
           </Link>
         </Show>

@@ -10,7 +10,7 @@ export async function getCurrentUser(ctx: Ctx): Promise<Doc<"users"> | null> {
   if (!identity) return null;
   return ctx.db
     .query("users")
-    .withIndex("by_token", (q) =>
+    .withIndex("by_tokenIdentifier", (q) =>
       q.eq("tokenIdentifier", identity.tokenIdentifier),
     )
     .unique();
@@ -26,4 +26,14 @@ export async function requireAdmin(ctx: Ctx): Promise<Doc<"users">> {
   const user = await requireUser(ctx);
   if (user.role !== "admin") throw new ConvexError("Not authorized");
   return user;
+}
+
+export function assertToolOwner(user: Doc<"users">, tool: Doc<"tools">) {
+  if (tool.ownerId !== user._id) throw new ConvexError("Not authorized");
+}
+
+export function assertToolOwnerOrAdmin(user: Doc<"users">, tool: Doc<"tools">) {
+  if (tool.ownerId !== user._id && user.role !== "admin") {
+    throw new ConvexError("Not authorized");
+  }
 }

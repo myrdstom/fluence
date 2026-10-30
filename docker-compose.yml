@@ -1,0 +1,19 @@
+services:
+  n8n:
+    image: n8nio/n8n:2.45.7
+    restart: unless-stopped
+    ports:
+      # Loopback only: the editor must not be reachable from the local network.
+      - "127.0.0.1:5678:5678"
+    env_file:
+      - ./n8n/.env
+    environment:
+      GENERIC_TIMEZONE: UTC
+      TZ: UTC
+      # Lets Code nodes verify HMAC signatures with the crypto module.
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

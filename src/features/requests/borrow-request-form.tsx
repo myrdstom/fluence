@@ -4,14 +4,10 @@ import { useMutation } from "convex/react";
 import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { DateField } from "@/components/date-field";
 import { ErrorMessage } from "@/components/error-message";
 import { localToday } from "@/lib/dates";
-import {
-  buttonPrimary,
-  buttonSecondary,
-  fieldInput,
-  fieldLabel,
-} from "@/lib/styles";
+import { buttonPrimary, buttonSecondary } from "@/lib/styles";
 import { useAsyncAction } from "@/lib/use-async-action";
 
 export function BorrowRequestForm({ toolId }: { toolId: Id<"tools"> }) {
@@ -41,28 +37,18 @@ export function BorrowRequestForm({ toolId }: { toolId: Id<"tools"> }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className={fieldLabel}>
-          From
-          <input
-            required
-            type="date"
-            min={localToday()}
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className={fieldInput}
-          />
-        </label>
-        <label className={fieldLabel}>
-          Until
-          <input
-            required
-            type="date"
-            min={startDate || localToday()}
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className={fieldInput}
-          />
-        </label>
+        <DateField
+          label="From"
+          min={localToday()}
+          value={startDate}
+          onChange={setStartDate}
+        />
+        <DateField
+          label="Until"
+          min={startDate || localToday()}
+          value={endDate}
+          onChange={setEndDate}
+        />
       </div>
       <ErrorMessage message={error} />
       <div className="flex flex-wrap gap-2">

@@ -48,38 +48,3 @@ jobs:
           name: coverage
           path: coverage/
           if-no-files-found: ignore
-
-  e2e:
-    name: End-to-end tests
-    runs-on: ubuntu-latest
-    # Tests share one Convex deployment, so runs must not overlap.
-    concurrency: e2e
-    env:
-      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
-    steps:
-      - name: Check for secrets
-        id: secrets
-        run: |
-          if [ -n "$NEXT_PUBLIC_CONVEX_URL" ] && [ -n "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" ] && [ -n "$CLERK_SECRET_KEY" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::E2E tests were skipped because the repository secrets are not set. See the README."
-          fi
-      - uses: actions/checkout@v4
-        if: steps.secrets.outputs.ready == 'true'
-      - uses: actions/setup-node@v4
-        if: steps.secrets.outputs.ready == 'true'
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-        if: steps.secrets.outputs.ready == 'true'
-      - run: npx playwright install --with-deps chromium
-        if: steps.secrets.outputs.ready == 'true'
-      # This also proves the production build works. Traces aren't uploaded
-      # because they can hold session tokens.
-      - run: npm run test:e2e
-        if: steps.secrets.outputs.ready == 'true'

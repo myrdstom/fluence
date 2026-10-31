@@ -66,7 +66,7 @@ jobs:
           if [ -n "$NEXT_PUBLIC_CONVEX_URL" ] && [ -n "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" ] && [ -n "$CLERK_SECRET_KEY" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::E2E tests were skipped because the repository secrets are not set. See the README."
+            echo "::warning::E2E tests were skipped because the repository secrets are not set. See docs/development.md."
           fi
       - uses: actions/checkout@v4
         if: steps.secrets.outputs.ready == 'true'

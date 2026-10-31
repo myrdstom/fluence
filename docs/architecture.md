@@ -1,6 +1,6 @@
 # LendLoop architecture
 
-LendLoop is a Next.js client on top of a Convex backend. Convex holds all the data and every authorization rule, Clerk proves who the user is, and n8n runs the notification and reminder workflows. For what the app does, see the [user guide](user-guide.md). For setup, see the [README](../README.md).
+LendLoop is a Next.js client on top of a Convex backend. Convex holds all the data and every authorization rule, Clerk proves who the user is, and n8n runs the notification and reminder workflows. For what the app does, see the [user guide](user-guide.md). For setup, see the [setup guide](setup.md).
 
 ## System overview
 
@@ -58,6 +58,7 @@ src/
   proxy.ts             Clerk session handling
 n8n/workflows/         Exported workflow JSON, with no secrets
 e2e/                   Playwright tests
+docker-compose.yml     Local n8n, plus the optional proxy and tunnel
 ```
 
 Dependencies in the frontend point one way: `app` uses `features`, and `features` uses `components`. `AGENTS.md` lists the full conventions, and ESLint enforces the ones it can, such as alias-only imports and no type assertions.
@@ -196,7 +197,7 @@ Calls into Convex cover the method, path, and query because there are several en
 
 **Secrets.** Workflows read secrets through `$env`, so the exported JSON holds only variable names. As a result, any workflow on the instance can read them, so only trusted people should have n8n logins.
 
-**Network exposure.** n8n's editor binds to loopback. The optional tunnel points at an nginx proxy that only forwards `/webhook/`, so the editor and API stay private.
+**Network exposure.** n8n's editor binds to loopback, and its image version is pinned. The optional tunnel points at an nginx proxy that only forwards `/webhook/`, so the editor and API stay private.
 
 ## Data minimization
 
@@ -209,20 +210,20 @@ Calls into Convex cover the method, path, and query because there are several en
 | n8n, notification    | Event ID and type, recipient name and email, tool name, and dates                    |
 | n8n, reminder        | Loan ID, idempotency key, tool name, due date, days overdue, borrower name and email |
 
-Logged messages mask email addresses, n8n deletes execution data after 7 days, and failure reports contain no workflow input. Notification errors are stored as short messages, such as `HTTP 502`.
+The public query returns an explicit projection, so owner details can't leak when the schema grows. Logged messages mask email addresses, n8n deletes execution data after 7 days, and failure reports contain no workflow input. Notification errors are stored as short messages, such as `HTTP 502`.
 
 ## Reliability
 
 - **Status changes and notifications commit together,** so a crash can't lose one without the other.
-- **Delivery is at-least-once.** If n8n's response is lost, Convex sends again with the same `eventId`, which a real email provider can use to drop the repeat.
+- **Delivery is at-least-once.** Convex makes up to 5 attempts over about 40 minutes, then marks the notification failed. If n8n's response is lost, Convex sends again with the same `eventId`, which a real email provider can use to drop the repeat.
 - **Re-running reminders is safe for the records.** A sent reminder is never downgraded by a later failure, and a later success replaces a failure.
 - **Reminders are also at-least-once.** If a send succeeds but its write-back keeps failing, a same-day re-run sends it again. Each reminder carries a stable `idempotencyKey`, so a real email provider can drop the repeat.
 - **Failures are visible.** Exhausted deliveries, failed reminders, and failed runs all appear under **Admin > Automation**.
 
 ## Testing
 
-- **Unit tests** use Vitest and `convex-test` to run Convex functions against an in-memory backend, including the authorization rules. CI requires at least 90% coverage of statements, functions, and lines, and 85% of branches, across `convex/` and `src/lib/`.
-- **End-to-end tests** use Playwright against a production build, covering the public page, sign-in redirects, and a lender's listing flow.
+- **Unit tests** use Vitest and `convex-test` to run Convex functions against an in-memory backend, including the authorization rules. They live next to the code as `*.test.ts`, and Convex doesn't deploy them. CI requires at least 90% coverage of statements, functions, and lines, and 85% of branches, across `convex/` and `src/lib/`.
+- **End-to-end tests** use Playwright against a production build, covering the public page, sign-in redirects, and a lender's listing flow. They also exercise the React components, which unit coverage doesn't measure.
 - **CI** also checks formatting, lint, and types on every push.
 
 ## Known limitations
@@ -230,4 +231,4 @@ Logged messages mask email addresses, n8n deletes execution data after 7 days, a
 - **Notifications are mocks.** The workflows log messages and don't send them, so the idempotency keys aren't used by a provider yet.
 - **An admin removing a listing tells the borrower but not the lender.** The lender sees the closed loan under **Incoming > History**.
 
-The [README](../README.md#running-in-production) lists what I would change to run this in production.
+The [production notes](production.md) list what I would change to run this in production.

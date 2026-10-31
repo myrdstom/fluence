@@ -101,7 +101,7 @@ The **Admin** page has four tabs:
 - **Listings:** every listing, with **Remove listing**. Removing a tool that is on loan also closes its loan and tells the borrower. Use this when a lender can no longer mark it returned.
 - **Automation:** recent notifications and reminders, with their status, plus any failed workflow runs. Check here if a notification seems to be missing.
 
-Admins are appointed from the command line. The [README](../README.md#local-setup) has the command.
+Admins are appointed from the command line. The [setup guide](setup.md#7-make-yourself-an-admin) has the command.
 
 ## Common questions
 

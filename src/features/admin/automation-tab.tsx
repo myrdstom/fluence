@@ -7,7 +7,7 @@ import { AutomationStatusBadge } from "@/components/badges";
 import { CardHeader } from "@/components/card-header";
 import { ListSection } from "@/components/list-section";
 import { StatusMessage } from "@/components/status-message";
-import { formatTimeAgo } from "@/lib/dates";
+import { formatTimeAgo } from "@/lib/dates/dates";
 import { card, dangerText, mutedText } from "@/lib/styles";
 
 export function AutomationTab() {

@@ -7,7 +7,7 @@ import { RequestBadges } from "@/components/badges";
 import { CardHeader } from "@/components/card-header";
 import { FilterPills } from "@/components/filter-pills";
 import { PaginatedList } from "@/components/paginated-list";
-import { formatDateRange } from "@/lib/dates";
+import { formatDateRange } from "@/lib/dates/dates";
 import { card, mutedText } from "@/lib/styles";
 import { ADMIN_PAGE_SIZE } from "./constants";
 

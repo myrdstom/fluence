@@ -12,7 +12,7 @@ import {
   type Condition,
 } from "@convex/lib/constants";
 import { ErrorMessage } from "@/components/error-message";
-import { findOption } from "@/lib/options";
+import { findOption } from "@/lib/options/options";
 import {
   buttonPrimary,
   buttonSecondary,

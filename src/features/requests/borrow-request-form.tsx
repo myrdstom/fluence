@@ -6,7 +6,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { DateField } from "@/components/date-field";
 import { ErrorMessage } from "@/components/error-message";
-import { localToday } from "@/lib/dates";
+import { localToday } from "@/lib/dates/dates";
 import { buttonPrimary, buttonSecondary } from "@/lib/styles";
 import { useAsyncAction } from "@/lib/use-async-action";
 

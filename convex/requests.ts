@@ -11,7 +11,7 @@ import {
   earliestLocalToday,
   isCalendarDate,
   rangesOverlap,
-} from "./lib/dates";
+} from "./lib/dates/dates";
 
 const OPEN_REQUESTS_LIMIT = 50;
 const ACTIVITY_LIMIT = 3;

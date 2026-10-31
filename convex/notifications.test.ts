@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { signHex } from "./lib/signature";
+import { signHex } from "./lib/signature/signature";
 import { addTool, addUser, createTest, type TestConvex } from "./test.helpers";
 
 const WEBHOOK_URL = "https://n8n.example.com/webhook/test";

@@ -47,7 +47,7 @@ Requests for your tools, in three groups:
 
 - **Needs your decision:** choose **Approve** or **Decline**.
 - **Out on loan:** the tools people have now, with their email address and **Mark as returned**.
-- **History:** requests that were declined, cancelled, or returned.
+- **History:** requests that were declined or cancelled, and loans that were returned or closed.
 
 ### Admin
 
@@ -55,13 +55,14 @@ Only admins see this page. See [For admins](#for-admins).
 
 ## Request statuses
 
-| Status    | What it means                                                                                                  |
-| --------- | -------------------------------------------------------------------------------------------------------------- |
-| Pending   | Waiting for the lender to decide                                                                               |
-| On loan   | Approved. The tool is with the borrower                                                                        |
-| Declined  | The lender said no, or approved other dates                                                                    |
-| Cancelled | The borrower withdrew, or the listing was removed. An admin removing a listing also ends any active loan on it |
-| Returned  | The lender confirmed the tool came back                                                                        |
+| Status    | What it means                                                                         |
+| --------- | ------------------------------------------------------------------------------------- |
+| Pending   | Waiting for the lender to decide                                                      |
+| On loan   | Approved. The tool is with the borrower                                               |
+| Declined  | The lender said no, or approved other dates                                           |
+| Cancelled | The borrower withdrew, or the listing was removed                                     |
+| Returned  | The lender confirmed the tool came back                                               |
+| Closed    | An admin removed the listing during the loan. Nobody has confirmed the tool came back |
 
 An **Overdue** badge appears beside **On loan** once the end date has passed.
 
@@ -95,7 +96,7 @@ Cards under **My requests** and **Incoming** show the latest automation activity
 
 The **Admin** page has four tabs:
 
-- **Loans:** every active loan, most overdue first, and every returned loan.
+- **Loans:** every active loan, most overdue first, plus every returned loan and every loan closed by an admin.
 - **Lenders:** every member. Choose **Mark as Trusted Lender** or **Remove Trusted Lender**.
 - **Listings:** every listing, with **Remove listing**. Removing a tool that is on loan also closes its loan and tells the borrower. Use this when a lender can no longer mark it returned.
 - **Automation:** recent notifications and reminders, with their status, plus any failed workflow runs. Check here if a notification seems to be missing.
@@ -112,6 +113,6 @@ Admins are appointed from the command line. The [README](../README.md#local-setu
 
 **Why can't I delete my listing?** The tool is on loan. Mark it returned first.
 
-**Why did my active loan get cancelled?** An admin removed the listing. Contact the lender if you still have the tool.
+**Why was my active loan closed?** An admin removed the listing. Contact the lender if you still have the tool.
 
 **Why does the page say it couldn't verify my session?** Sign out and sign in again.

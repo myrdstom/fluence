@@ -170,15 +170,19 @@ export const remove = mutation({
     if (tool.status === "on_loan" && user.role !== "admin") {
       throw new ConvexError("This tool is on loan. Mark it returned first.");
     }
-    for (const status of ["pending", "approved"] as const) {
+    const endings = [
+      ["pending", "cancelled"],
+      ["approved", "closed"],
+    ] as const;
+    for (const [status, ending] of endings) {
       const requests = ctx.db
         .query("borrowRequests")
         .withIndex("by_toolId_and_status", (q) =>
           q.eq("toolId", toolId).eq("status", status),
         );
       for await (const request of requests) {
-        // The borrower needs to know, since they didn't cancel it themselves.
-        await setRequestStatus(ctx, request, "cancelled", "borrower");
+        // The borrower needs to know, since they didn't end it themselves.
+        await setRequestStatus(ctx, request, ending, "borrower");
       }
     }
     await ctx.db.delete("tools", toolId);

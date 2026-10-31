@@ -8,10 +8,11 @@ export type RequestStatus = Infer<typeof requestStatusValidator>;
 
 const ALLOWED_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   pending: ["approved", "declined", "cancelled"],
-  approved: ["returned", "cancelled"],
+  approved: ["returned", "closed"],
   declined: [],
   cancelled: [],
   returned: [],
+  closed: [],
 };
 
 /** Who hears about each change by default: the person who didn't make it. */
@@ -21,6 +22,7 @@ const DEFAULT_RECIPIENTS: Record<RequestStatus, Recipient> = {
   declined: "borrower",
   cancelled: "owner",
   returned: "borrower",
+  closed: "borrower",
 };
 
 /**

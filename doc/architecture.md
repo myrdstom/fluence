@@ -113,15 +113,16 @@ stateDiagram-v2
   pending --> declined: decline, or overlapping approval
   pending --> cancelled: cancel, or listing removed
   approved --> returned: mark returned
-  approved --> cancelled: admin removes listing
+  approved --> closed: admin removes listing
   declined --> [*]
   cancelled --> [*]
   returned --> [*]
+  closed --> [*]
 ```
 
-Every status change goes through `setRequestStatus` in `convex/lib/borrowRequests.ts`, which rejects any other transition and records the notification. `requests.cancel` is stricter and only accepts pending requests, so a borrower can't end their own active loan.
+Every status change goes through `setRequestStatus` in `convex/lib/borrowRequests.ts`, which rejects any other transition and records the notification.
 
-When an admin removes an on-loan listing, the loan closes as `cancelled` rather than `returned`, because nobody confirmed the tool came back. This keeps a missing lender from leaving a listing stuck, since only the lender can mark a loan returned.
+When an admin removes an on-loan listing, the loan becomes `closed` rather than `returned`, because nobody confirmed the tool came back. This keeps a missing lender from leaving a listing stuck, since only the lender can mark a loan returned. Closed loans stay visible to admins under **Admin > Loans**.
 
 Some decisions keep this model simple:
 
@@ -227,6 +228,6 @@ Logged messages mask email addresses, n8n deletes execution data after 7 days, a
 ## Known limitations
 
 - **Notifications are mocks.** The workflows log messages and don't send them, so the idempotency keys aren't used by a provider yet.
-- **An admin removing a listing tells the borrower but not the lender.** The lender sees the cancelled loan under **Incoming > History**.
+- **An admin removing a listing tells the borrower but not the lender.** The lender sees the closed loan under **Incoming > History**.
 
 The [README](../README.md#running-in-production) lists what I would change to run this in production.

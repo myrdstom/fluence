@@ -80,19 +80,22 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 
 ## Environment variables
 
-| Variable                            | Where it is set    | Purpose                               |
-| ----------------------------------- | ------------------ | ------------------------------------- |
-| `NEXT_PUBLIC_CONVEX_URL`            | `.env.local`       | Convex client URL                     |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `.env.local`       | Clerk client key                      |
-| `CLERK_SECRET_KEY`                  | `.env.local`       | Clerk server key                      |
-| `CLERK_JWT_ISSUER_DOMAIN`           | Convex             | Validates Clerk JWTs                  |
-| `N8N_WEBHOOK_URL`                   | Convex             | Request notification webhook          |
-| `N8N_WEBHOOK_SECRET`                | Convex, `n8n/.env` | Signs Convex to n8n calls             |
-| `CONVEX_INBOUND_SECRET`             | Convex, `n8n/.env` | Signs n8n to Convex calls             |
-| `CONVEX_SITE_URL`                   | `n8n/.env`         | Where n8n calls Convex                |
-| `N8N_ENCRYPTION_KEY`                | `n8n/.env`         | Encrypts n8n credentials at rest      |
-| `WEBHOOK_URL`                       | `n8n/.env`         | Public URL n8n advertises             |
-| `E2E_USER_EMAIL`                    | `.env.local`       | Optional user for signed-in e2e tests |
+| Variable                            | Where it is set    | Purpose                                              |
+| ----------------------------------- | ------------------ | ---------------------------------------------------- |
+| `NEXT_PUBLIC_CONVEX_URL`            | `.env.local`       | Convex client URL                                    |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `.env.local`       | Clerk client key                                     |
+| `CLERK_SECRET_KEY`                  | `.env.local`       | Clerk server key                                     |
+| `NEXT_PUBLIC_CONVEX_SITE_URL`       | `.env.local`       | Convex HTTP actions URL, copied to `CONVEX_SITE_URL` |
+| `CONVEX_DEPLOYMENT`                 | `.env.local`       | Written by `npx convex dev`                          |
+| `CLERK_JWT_ISSUER_DOMAIN`           | Convex             | Validates Clerk JWTs                                 |
+| `N8N_WEBHOOK_URL`                   | Convex             | Request notification webhook                         |
+| `N8N_WEBHOOK_SECRET`                | Convex, `n8n/.env` | Signs Convex to n8n calls                            |
+| `CONVEX_INBOUND_SECRET`             | Convex, `n8n/.env` | Signs n8n to Convex calls                            |
+| `CONVEX_SITE_URL`                   | `n8n/.env`         | Where n8n calls Convex                               |
+| `N8N_ENCRYPTION_KEY`                | `n8n/.env`         | Encrypts n8n credentials at rest                     |
+| `WEBHOOK_URL`                       | `n8n/.env`         | Public URL n8n advertises                            |
+| `N8N_SECURE_COOKIE`                 | `n8n/.env`         | Allows the editor login over local HTTP              |
+| `E2E_USER_EMAIL`                    | `.env.local`       | Optional user for signed-in e2e tests                |
 
 ## Development
 
@@ -153,14 +156,14 @@ e2e/                Playwright tests
 docker-compose.yml  Local n8n, plus the optional proxy and tunnel
 ```
 
-**Data model.** An approved `borrowRequests` row is the loan, so there is one status machine and no request and loan tables to keep in sync: `pending -> approved -> returned`, or `pending -> declined | cancelled`. Removing a listing as an admin also takes `approved -> cancelled`. Dates are `YYYY-MM-DD` strings, which sort correctly and avoid timezone drift.
+**Data model.** An approved `borrowRequests` row is the loan, so there is one status machine and no request and loan tables to keep in sync: `pending -> approved -> returned`, or `pending -> declined | cancelled`. Removing a listing as an admin takes `approved -> closed`. Dates are `YYYY-MM-DD` strings, which sort correctly and avoid timezone drift.
 
 **Borrowing rules.**
 
 - A tool has one active loan at a time and counts as on loan from approval until it is returned, which keeps availability a simple status rather than a date calculation.
 - Approving a request declines pending requests with overlapping dates. Non-overlapping requests stay pending and can be approved after the return.
 - Only the lender can mark a loan returned, so a borrower cannot clear an overdue loan without giving the tool back.
-- Requests keep a copy of the tool's name, so history survives the listing being deleted. Deleting a listing cancels its pending requests. Owners can't delete a tool that is on loan. Admins can, which closes the loan as `cancelled`, not `returned`, because nobody confirmed the tool came back, and which keeps a missing lender from leaving a listing stuck.
+- Requests keep a copy of the tool's name, so history survives the listing being deleted. Deleting a listing cancels its pending requests. Owners can't delete a tool that is on loan. Admins can, which marks the loan `closed`, not `returned`, because nobody confirmed the tool came back, and which keeps a missing lender from leaving a listing stuck.
 - Every status change goes through `setRequestStatus` in `convex/lib/borrowRequests.ts`, which enforces the allowed transitions.
 
 ## Security and data minimization

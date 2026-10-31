@@ -258,17 +258,22 @@ describe("tools.remove", () => {
     const { page } = await borrower.client.query(api.requests.listMine, {
       paginationOpts: FIRST_PAGE,
     });
-    expect(page[0]).toMatchObject({ toolName: "Drill", status: "cancelled" });
+    expect(page[0]).toMatchObject({ toolName: "Drill", status: "closed" });
     expect(await t.run((ctx) => ctx.db.get("tools", toolId))).toBeNull();
+    const closedLoans = await admin.client.query(api.admin.listLoans, {
+      status: "closed",
+      paginationOpts: FIRST_PAGE,
+    });
+    expect(closedLoans.page.map((loan) => loan._id)).toEqual([requestId]);
     const events = await t.run((ctx) =>
       ctx.db
         .query("automationEvents")
         .withIndex("by_requestId", (q) => q.eq("requestId", requestId))
         .collect(),
     );
-    expect(
-      events.find((e) => e.event === "request.cancelled")?.recipientId,
-    ).toBe(borrower.id);
+    expect(events.find((e) => e.event === "request.closed")?.recipientId).toBe(
+      borrower.id,
+    );
   });
 
   test("cancels pending requests, tells the borrower, and keeps history", async () => {

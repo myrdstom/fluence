@@ -53,7 +53,8 @@ export const toolStatusValidator = v.union(
 /**
  * pending -> approved -> returned
  * pending -> declined | cancelled
- * approved -> cancelled, only when an admin removes the listing
+ * approved -> closed, when an admin removes the listing. It isn't "returned",
+ * because nobody confirmed the tool came back.
  * An approved request is an active loan; a loan is not a separate table.
  */
 export const requestStatusValidator = v.union(
@@ -62,6 +63,7 @@ export const requestStatusValidator = v.union(
   v.literal("declined"),
   v.literal("cancelled"),
   v.literal("returned"),
+  v.literal("closed"),
 );
 
 export const automationKindValidator = v.union(

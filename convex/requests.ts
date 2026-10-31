@@ -261,10 +261,6 @@ export const cancel = mutation({
     if (request.borrowerId !== user._id) {
       throw new ConvexError("Not authorized");
     }
-    // Stricter than the state machine: only an admin can cancel an active loan.
-    if (request.status !== "pending") {
-      throw new ConvexError("Only a pending request can be cancelled");
-    }
     await setRequestStatus(ctx, request, "cancelled");
   },
 });

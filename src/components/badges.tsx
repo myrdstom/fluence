@@ -47,6 +47,7 @@ const REQUEST_STATUSES = {
   declined: { label: "Declined", tone: "neutral" },
   cancelled: { label: "Cancelled", tone: "neutral" },
   returned: { label: "Returned", tone: "info" },
+  closed: { label: "Closed", tone: "neutral" },
 } as const satisfies Record<string, { label: string; tone: Tone }>;
 
 export function RequestStatusBadge({

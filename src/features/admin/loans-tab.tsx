@@ -12,12 +12,19 @@ import { card, mutedText } from "@/lib/styles";
 import { ADMIN_PAGE_SIZE } from "./constants";
 
 const STATUS_OPTIONS = [
-  { value: "approved", label: "Active" },
-  { value: "returned", label: "Returned" },
+  { value: "approved", label: "Active", emptyText: "No active loans." },
+  { value: "returned", label: "Returned", emptyText: "No returned loans yet." },
+  {
+    value: "closed",
+    label: "Closed",
+    emptyText: "No loans closed by an admin.",
+  },
 ] as const;
 
+type LoanStatus = (typeof STATUS_OPTIONS)[number]["value"];
+
 export function LoansTab() {
-  const [status, setStatus] = useState<"approved" | "returned">("approved");
+  const [status, setStatus] = useState<LoanStatus>("approved");
   const loans = usePaginatedQuery(
     api.admin.listLoans,
     { status },
@@ -37,7 +44,7 @@ export function LoansTab() {
         pagination={loans}
         pageSize={ADMIN_PAGE_SIZE}
         emptyText={
-          status === "approved" ? "No active loans." : "No returned loans yet."
+          STATUS_OPTIONS.find((option) => option.value === status)?.emptyText
         }
         renderItem={(loan) => (
           <li key={loan._id} className={card}>

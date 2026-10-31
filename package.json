@@ -9,7 +9,18 @@
     "lint": "eslint",
     "dev:convex": "convex dev",
     "typecheck": "tsc --noEmit",
-    "n8n:up": "docker compose up -d"
+    "n8n:up": "docker compose up -d",
+    "n8n:setup": "sh n8n/setup.sh",
+    "n8n:tunnel": "docker compose --profile tunnel up -d",
+    "n8n:tunnel-url": "docker compose --profile tunnel logs tunnel | grep -oE 'https://[a-z0-9-]+\\.trycloudflare\\.com' | tail -1",
+    "lint:fix": "eslint --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "check": "npm run format:check && npm run lint && npm run typecheck"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.22",
@@ -19,13 +30,21 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@clerk/testing": "^2.2.53",
+    "@edge-runtime/vm": "^5.0.0",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.5",
+    "convex-test": "^0.0.66",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.5"
   }
 }

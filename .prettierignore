@@ -1,0 +1,12 @@
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+package-lock.json
+convex/_generated/
+next-env.d.ts
+# Generated or managed by other tools.
+AGENTS.md
+CLAUDE.md

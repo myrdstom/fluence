@@ -10,10 +10,37 @@ services:
     environment:
       GENERIC_TIMEZONE: UTC
       TZ: UTC
-      # Lets Code nodes verify HMAC signatures with the crypto module.
+      # Lets Code nodes compute and verify HMAC signatures.
       NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      # Workflows read their signing secrets as $env values, so the exported
+      # JSON holds variable names only. This also lets any workflow on this
+      # instance read those values, so only trusted people should have logins.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # Shows the mock notifications in `docker compose logs n8n`.
+      CODE_ENABLE_STDOUT: "true"
+      # Execution data contains recipient emails, so keep it for 7 days only.
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+
+  # Everything below runs only with `--profile tunnel`. Convex in the cloud
+  # can't reach localhost, so the tunnel gives it a public URL for webhooks.
+  webhook-proxy:
+    profiles: [tunnel]
+    image: nginx:1.29.3-alpine
+    restart: unless-stopped
+    depends_on: [n8n]
+    volumes:
+      - ./n8n/webhook-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+
+  tunnel:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:2026.10.7
+    restart: unless-stopped
+    depends_on: [webhook-proxy]
+    command: tunnel --no-autoupdate --url http://webhook-proxy:8080
 
 volumes:
   n8n_data:

@@ -1,0 +1,305 @@
+{
+  "id": "LendLoopOverdue1",
+  "name": "LendLoop: Overdue reminders",
+  "active": false,
+  "nodes": [
+    {
+      "id": "every-day-at-09:00-utc",
+      "name": "Every Day at 09:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "run-manually",
+      "name": "Run Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 400],
+      "parameters": {}
+    },
+    {
+      "id": "sign-overdue-request",
+      "name": "Sign Overdue Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const crypto = require('crypto');\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst timestamp = String(Date.now());\nconst signature = crypto.createHmac('sha256', secret)\n  .update(`${timestamp}.GET./n8n/overdue-loans.`)\n  .digest('hex');\nreturn [{ json: { timestamp, signature } }];"
+      }
+    },
+    {
+      "id": "fetch-overdue-loans",
+      "name": "Fetch Overdue Loans",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CONVEX_SITE_URL }}/n8n/overdue-loans",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-lendloop-timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "x-lendloop-signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "split-into-loans",
+      "name": "Split Into Loans",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const { reminderDate, loans } = $input.first().json;\nreturn loans.map((loan) => ({ json: { ...loan, reminderDate } }));"
+      }
+    },
+    {
+      "id": "send-mock-reminder",
+      "name": "Send Mock Reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// Mock channel: replace this node with Email, Slack, or similar to send for real.\nconst maskEmail = (email) => email.replace(/^(.).*(@.*)$/, '$1***$2');\n\nconst { loanId, toolName, dueDate, daysOverdue, borrower } = $json;\nconst reminder = {\n  channel: 'mock',\n  loanId,\n  to: maskEmail(borrower.email),\n  subject: `Please return the ${toolName}`,\n  message: `It was due on ${dueDate}, ${daysOverdue} day(s) ago.`,\n};\nconsole.log('[LendLoop reminder]', JSON.stringify(reminder));\nreturn { json: reminder };"
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "mark-sent",
+      "name": "Mark Sent",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1200, 200],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "sent",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "mark-failed",
+      "name": "Mark Failed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1200, 420],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "sign-write-back",
+      "name": "Sign Write-back",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 300],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// Signs the exact string that the next node sends. The write-back doesn't\n// depend on the send's output, so a failed send is reported as failed.\nconst crypto = require('crypto');\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst { loanId, reminderDate } = $('Split Into Loans').item.json;\nconst body = JSON.stringify({ loanId, reminderDate, status: $json.status });\nconst timestamp = String(Date.now());\nconst signature = crypto.createHmac('sha256', secret)\n  .update(`${timestamp}.POST./n8n/reminder-status.${body}`)\n  .digest('hex');\nreturn { json: { timestamp, signature, body } };"
+      }
+    },
+    {
+      "id": "record-reminder-status",
+      "name": "Record Reminder Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONVEX_SITE_URL }}/n8n/reminder-status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-lendloop-timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "x-lendloop-signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Every Day at 09:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Sign Overdue Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Manually": {
+      "main": [
+        [
+          {
+            "node": "Sign Overdue Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Overdue Request": {
+      "main": [
+        [
+          {
+            "node": "Fetch Overdue Loans",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Overdue Loans": {
+      "main": [
+        [
+          {
+            "node": "Split Into Loans",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Loans": {
+      "main": [
+        [
+          {
+            "node": "Send Mock Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mock Reminder": {
+      "main": [
+        [
+          {
+            "node": "Mark Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Sent": {
+      "main": [
+        [
+          {
+            "node": "Sign Write-back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Failed": {
+      "main": [
+        [
+          {
+            "node": "Sign Write-back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Write-back": {
+      "main": [
+        [
+          {
+            "node": "Record Reminder Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "LendLoopErrors01"
+  },
+  "pinData": {},
+  "tags": [],
+  "versionId": "LendLoopOverdue1-v1"
+}

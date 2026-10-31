@@ -68,6 +68,7 @@ export const automationKindValidator = v.union(
 );
 
 export const automationStatusValidator = v.union(
+  v.literal("pending"),
   v.literal("sent"),
   v.literal("failed"),
 );

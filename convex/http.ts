@@ -1,16 +1,115 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { httpAction, type ActionCtx } from "./_generated/server";
+import { isCalendarDate, utcDate } from "./lib/dates";
+import { verifyInboundRequest } from "./lib/signature";
+
+const MAX_TEXT_LENGTH = 500;
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/** Wraps a handler so it only runs for correctly signed requests. */
+function signedAction(
+  handler: (ctx: ActionCtx, body: string) => Promise<Response>,
+) {
+  return httpAction(async (ctx, request) => {
+    const secret = process.env.CONVEX_INBOUND_SECRET;
+    if (!secret) {
+      console.error("CONVEX_INBOUND_SECRET is not set");
+      return json({ error: "Not configured" }, 503);
+    }
+    const body = await request.text();
+    if (!(await verifyInboundRequest(request, body, secret))) {
+      return json({ error: "Invalid signature" }, 401);
+    }
+    return handler(ctx, body);
+  });
+}
+
+function parseObject(body: string): Record<string, unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    return typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function boundedText(value: unknown) {
+  return typeof value === "string" && value.length > 0
+    ? value.slice(0, MAX_TEXT_LENGTH)
+    : null;
+}
 
 const http = httpRouter();
 
-const notImplemented = httpAction(async () => {
-  return new Response("Not implemented", { status: 501 });
+http.route({
+  path: "/n8n/overdue-loans",
+  method: "GET",
+  handler: signedAction(async (ctx) => {
+    const today = utcDate(Date.now());
+    const loans = await ctx.runQuery(internal.reminders.listOverdue, { today });
+    return json({ reminderDate: today, loans });
+  }),
 });
 
-// TODO: verify the HMAC signature, then return overdue loans with minimal fields.
-http.route({ path: "/n8n/overdue-loans", method: "GET", handler: notImplemented });
+http.route({
+  path: "/n8n/reminder-status",
+  method: "POST",
+  handler: signedAction(async (ctx, rawBody) => {
+    const body = parseObject(rawBody);
+    const loanId = boundedText(body?.loanId);
+    const reminderDate = boundedText(body?.reminderDate);
+    const status = body?.status;
+    if (
+      !loanId ||
+      !reminderDate ||
+      !isCalendarDate(reminderDate) ||
+      (status !== "sent" && status !== "failed")
+    ) {
+      return json({ error: "Invalid body" }, 400);
+    }
+    const result = await ctx.runMutation(internal.reminders.recordReminder, {
+      loanId,
+      reminderDate,
+      status,
+    });
+    return json(result, result.outcome === "not_found" ? 404 : 200);
+  }),
+});
 
-// TODO: verify the HMAC signature, then record the reminder status idempotently.
-http.route({ path: "/n8n/reminder-status", method: "POST", handler: notImplemented });
+http.route({
+  path: "/n8n/workflow-failure",
+  method: "POST",
+  handler: signedAction(async (ctx, rawBody) => {
+    const body = parseObject(rawBody);
+    const executionId = boundedText(body?.executionId);
+    const workflowName = boundedText(body?.workflowName);
+    const nodeName = boundedText(body?.nodeName);
+    const message = boundedText(body?.message);
+    if (!executionId || !workflowName || !nodeName || !message) {
+      return json({ error: "Invalid body" }, 400);
+    }
+    const result = await ctx.runMutation(
+      internal.reminders.recordWorkflowFailure,
+      {
+        executionId,
+        workflowName,
+        nodeName,
+        message,
+      },
+    );
+    return json(result);
+  }),
+});
 
 export default http;

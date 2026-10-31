@@ -47,7 +47,11 @@ export default defineSchema({
     returnedAt: v.optional(v.number()),
   })
     .index("by_borrowerId", ["borrowerId"])
-    .index("by_borrowerId_and_toolId_and_status", ["borrowerId", "toolId", "status"])
+    .index("by_borrowerId_and_toolId_and_status", [
+      "borrowerId",
+      "toolId",
+      "status",
+    ])
     .index("by_ownerId", ["ownerId"])
     .index("by_ownerId_and_status", ["ownerId", "status"])
     .index("by_toolId_and_status", ["toolId", "status"])
@@ -57,10 +61,25 @@ export default defineSchema({
     requestId: v.id("borrowRequests"),
     kind: automationKindValidator,
     status: automationStatusValidator,
-    // Unique per logical event, so n8n retries cannot create duplicates.
+    // Unique per logical event, so retries cannot create duplicates.
     idempotencyKey: v.string(),
     occurredAt: v.number(),
+    // Request notifications only: what happened and who to tell.
+    event: v.optional(v.string()),
+    recipientId: v.optional(v.id("users")),
+    attempts: v.optional(v.number()),
+    // Short and free of personal data, for example "HTTP 502".
+    lastError: v.optional(v.string()),
   })
     .index("by_idempotencyKey", ["idempotencyKey"])
     .index("by_requestId", ["requestId"]),
+
+  workflowFailures: defineTable({
+    // The n8n execution ID, so a retried report is recorded once.
+    executionId: v.string(),
+    workflowName: v.string(),
+    nodeName: v.string(),
+    message: v.string(),
+    occurredAt: v.number(),
+  }).index("by_executionId", ["executionId"]),
 });

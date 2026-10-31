@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ToolStatusBadge, TrustedLenderBadge } from "@/components/badges";
 import { BorrowRequestForm } from "@/components/borrow-request-form";
 import { LoadMore } from "@/components/load-more";
-import { card } from "@/lib/styles";
+import { card, pill } from "@/lib/styles";
 import { api } from "../../../../convex/_generated/api";
 import {
   CATEGORIES,
@@ -16,14 +16,6 @@ import {
 } from "../../../../convex/lib/constants";
 
 const PAGE_SIZE = 24;
-
-function filterClass(isActive: boolean) {
-  return `rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
-    isActive
-      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-      : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-  }`;
-}
 
 export default function ToolsPage() {
   const [category, setCategory] = useState<Category | undefined>();
@@ -37,12 +29,16 @@ export default function ToolsPage() {
     <section>
       <h1 className="text-2xl font-semibold tracking-tight">All tools</h1>
 
-      <div role="group" aria-label="Filter by category" className="mt-4 flex flex-wrap gap-2">
+      <div
+        role="group"
+        aria-label="Filter by category"
+        className="mt-4 flex flex-wrap gap-2"
+      >
         <button
           type="button"
           aria-pressed={category === undefined}
           onClick={() => setCategory(undefined)}
-          className={filterClass(category === undefined)}
+          className={pill(category === undefined)}
         >
           All
         </button>
@@ -52,7 +48,7 @@ export default function ToolsPage() {
             type="button"
             aria-pressed={category === option}
             onClick={() => setCategory(option)}
-            className={filterClass(category === option)}
+            className={pill(category === option)}
           >
             {CATEGORY_LABELS[option]}
           </button>
@@ -81,7 +77,9 @@ export default function ToolsPage() {
               </p>
               <p className="mt-2 text-sm">{tool.description}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-                {tool.isMine ? "Your listing" : `Lent by ${tool.lender?.name ?? "a neighbor"}`}
+                {tool.isMine
+                  ? "Your listing"
+                  : `Lent by ${tool.lender?.name ?? "a neighbor"}`}
                 {tool.lender?.isTrustedLender && <TrustedLenderBadge />}
               </div>
               {!tool.isMine && tool.status === "available" && (

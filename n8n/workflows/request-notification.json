@@ -1,0 +1,171 @@
+{
+  "id": "LendLoopRequest1",
+  "name": "LendLoop: Request notification",
+  "active": false,
+  "nodes": [
+    {
+      "id": "request-event-webhook",
+      "name": "Request Event Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lendloop-request-event",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "webhookId": "lendloop-request-event"
+    },
+    {
+      "id": "verify-signature",
+      "name": "Verify Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Rejects anything not signed by Convex in the last 5 minutes. The signature\n// covers the raw bytes, because re-serializing parsed JSON could change them.\nconst crypto = require('crypto');\nconst MAX_AGE_MS = 5 * 60 * 1000;\n\nconst secret = $env.N8N_WEBHOOK_SECRET;\nif (!secret) throw new Error('N8N_WEBHOOK_SECRET is not set');\n\nconst { headers } = $input.first().json;\nconst timestamp = headers['x-lendloop-timestamp'] ?? '';\nconst signature = headers['x-lendloop-signature'] ?? '';\nconst raw = (await this.helpers.getBinaryDataBuffer(0, 'data')).toString('utf8');\n\nconst expected = crypto.createHmac('sha256', secret).update(`${timestamp}.${raw}`).digest();\nconst received = /^[0-9a-f]{64}$/.test(signature) ? Buffer.from(signature, 'hex') : Buffer.alloc(32);\nconst isFresh = /^\\d+$/.test(timestamp) && Math.abs(Date.now() - Number(timestamp)) <= MAX_AGE_MS;\nconst valid = crypto.timingSafeEqual(expected, received) && isFresh;\n\nreturn [{ json: { valid, payload: valid ? JSON.parse(raw) : null } }];"
+      }
+    },
+    {
+      "id": "signature-valid?",
+      "name": "Signature Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [480, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "send-mock-notification",
+      "name": "Send Mock Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Mock channel: replace this node with Email, Slack, or similar to send for real.\n// A real provider should get eventId as its idempotency key, since Convex\n// retries until it sees a success and may occasionally deliver twice.\nconst maskEmail = (email) => email.replace(/^(.).*(@.*)$/, '$1***$2');\n\nconst { eventId, event, recipient, toolName, startDate, endDate } = $json.payload;\nconst subjects = {\n  'request.created': `New request to borrow your ${toolName}`,\n  'request.approved': `Your request for the ${toolName} was approved`,\n  'request.declined': `Your request for the ${toolName} was declined`,\n  'request.cancelled': `A request for the ${toolName} was cancelled`,\n  'request.returned': `The ${toolName} was marked returned`,\n};\nconst notification = {\n  channel: 'mock',\n  eventId,\n  to: maskEmail(recipient.email),\n  subject: subjects[event] ?? `Update on the ${toolName}`,\n  dates: `${startDate} to ${endDate}`,\n};\nconsole.log('[LendLoop notification]', JSON.stringify(notification));\nreturn [{ json: notification }];"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 200],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "respond-unauthorized",
+      "name": "Respond Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 420],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'Invalid signature' } }}",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Request Event Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Signature": {
+      "main": [
+        [
+          {
+            "node": "Signature Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature Valid?": {
+      "main": [
+        [
+          {
+            "node": "Send Mock Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mock Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "LendLoopErrors01"
+  },
+  "pinData": {},
+  "tags": [],
+  "versionId": "LendLoopRequest1-v1"
+}

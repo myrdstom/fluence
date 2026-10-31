@@ -59,7 +59,7 @@ export const listPublic = query({
       .withIndex("by_status", (q) => q.eq("status", "available"))
       .order("desc")
       .take(PUBLIC_LIST_LIMIT);
-    return tools.map(({ _id, name, category }) => ({ _id, name, category }));
+    return tools.map(({ name, category }) => ({ name, category }));
   },
 });
 
@@ -166,17 +166,20 @@ export const remove = mutation({
     const user = await requireUser(ctx);
     const tool = await getToolOrThrow(ctx, toolId);
     assertToolOwnerOrAdmin(user, tool);
-    if (tool.status === "on_loan") {
+    // Admins can close the loan too, so a missing lender can't leave it stuck.
+    if (tool.status === "on_loan" && user.role !== "admin") {
       throw new ConvexError("This tool is on loan. Mark it returned first.");
     }
-    const pendingRequests = ctx.db
-      .query("borrowRequests")
-      .withIndex("by_toolId_and_status", (q) =>
-        q.eq("toolId", toolId).eq("status", "pending"),
-      );
-    for await (const request of pendingRequests) {
-      // The borrower needs to know, since they didn't cancel it themselves.
-      await setRequestStatus(ctx, request, "cancelled", "borrower");
+    for (const status of ["pending", "approved"] as const) {
+      const requests = ctx.db
+        .query("borrowRequests")
+        .withIndex("by_toolId_and_status", (q) =>
+          q.eq("toolId", toolId).eq("status", status),
+        );
+      for await (const request of requests) {
+        // The borrower needs to know, since they didn't cancel it themselves.
+        await setRequestStatus(ctx, request, "cancelled", "borrower");
+      }
     }
     await ctx.db.delete("tools", toolId);
   },

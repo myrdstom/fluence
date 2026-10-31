@@ -1,6 +1,6 @@
 import { buttonSecondary } from "@/lib/styles";
 
-type PaginationStatus =
+export type PaginationStatus =
   "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
 
 export function LoadMore({

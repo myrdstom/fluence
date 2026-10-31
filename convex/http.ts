@@ -5,6 +5,7 @@ import { isCalendarDate, utcDate } from "./lib/dates";
 import { verifyInboundRequest } from "./lib/signature";
 
 const MAX_TEXT_LENGTH = 500;
+const OVERDUE_PAGE_SIZE = 100;
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -15,7 +16,11 @@ function json(data: unknown, status = 200) {
 
 /** Wraps a handler so it only runs for correctly signed requests. */
 function signedAction(
-  handler: (ctx: ActionCtx, body: string) => Promise<Response>,
+  handler: (
+    ctx: ActionCtx,
+    body: string,
+    request: Request,
+  ) => Promise<Response>,
 ) {
   return httpAction(async (ctx, request) => {
     const secret = process.env.CONVEX_INBOUND_SECRET;
@@ -27,18 +32,18 @@ function signedAction(
     if (!(await verifyInboundRequest(request, body, secret))) {
       return json({ error: "Invalid signature" }, 401);
     }
-    return handler(ctx, body);
+    return handler(ctx, body, request);
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function parseObject(body: string): Record<string, unknown> | null {
   try {
     const parsed: unknown = JSON.parse(body);
-    return typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
+    return isRecord(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -55,10 +60,19 @@ const http = httpRouter();
 http.route({
   path: "/n8n/overdue-loans",
   method: "GET",
-  handler: signedAction(async (ctx) => {
+  handler: signedAction(async (ctx, _body, request) => {
     const today = utcDate(Date.now());
-    const loans = await ctx.runQuery(internal.reminders.listOverdue, { today });
-    return json({ reminderDate: today, loans });
+    const { page, continueCursor, isDone } = await ctx.runQuery(
+      internal.reminders.listOverdue,
+      {
+        today,
+        paginationOpts: {
+          numItems: OVERDUE_PAGE_SIZE,
+          cursor: new URL(request.url).searchParams.get("cursor"),
+        },
+      },
+    );
+    return json({ reminderDate: today, loans: page, continueCursor, isDone });
   }),
 });
 

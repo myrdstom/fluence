@@ -1,39 +1,40 @@
 import { v } from "convex/values";
 
-export const CATEGORY_LABELS = {
+export const CATEGORIES = [
+  "power_tools",
+  "hand_tools",
+  "garden",
+  "kitchen",
+  "camping",
+  "other",
+] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<Category, string> = {
   power_tools: "Power tools",
   hand_tools: "Hand tools",
   garden: "Garden",
   kitchen: "Kitchen",
   camping: "Camping",
   other: "Other",
-} as const;
-export type Category = keyof typeof CATEGORY_LABELS;
-export const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
+};
 
 export const categoryValidator = v.union(
-  v.literal("power_tools"),
-  v.literal("hand_tools"),
-  v.literal("garden"),
-  v.literal("kitchen"),
-  v.literal("camping"),
-  v.literal("other"),
+  ...CATEGORIES.map((category) => v.literal(category)),
 );
 
-export const CONDITION_LABELS = {
+export const CONDITIONS = ["new", "good", "fair", "worn"] as const;
+export type Condition = (typeof CONDITIONS)[number];
+
+export const CONDITION_LABELS: Record<Condition, string> = {
   new: "New",
   good: "Good",
   fair: "Fair",
   worn: "Worn",
-} as const;
-export type Condition = keyof typeof CONDITION_LABELS;
-export const CONDITIONS = Object.keys(CONDITION_LABELS) as Condition[];
+};
 
 export const conditionValidator = v.union(
-  v.literal("new"),
-  v.literal("good"),
-  v.literal("fair"),
-  v.literal("worn"),
+  ...CONDITIONS.map((condition) => v.literal(condition)),
 );
 
 export const TOOL_NAME_MAX_LENGTH = 80;
@@ -52,6 +53,7 @@ export const toolStatusValidator = v.union(
 /**
  * pending -> approved -> returned
  * pending -> declined | cancelled
+ * approved -> cancelled, only when an admin removes the listing
  * An approved request is an active loan; a loan is not a separate table.
  */
 export const requestStatusValidator = v.union(

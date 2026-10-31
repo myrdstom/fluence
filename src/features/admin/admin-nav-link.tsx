@@ -2,7 +2,7 @@
 
 import { useConvexAuth, useQuery } from "convex/react";
 import Link from "next/link";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 
 /** Hiding the link is only a convenience. Convex rejects non-admin calls regardless. */
 export function AdminNavLink({ className }: { className: string }) {

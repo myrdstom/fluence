@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 describe("tools.listPublic", () => {
-  test("works signed out and returns only ID, name, and category", async () => {
+  test("works signed out and returns only name and category", async () => {
     const t = createTest();
     const owner = await addUser(t, "owner");
     await addTool(owner.client, "Drill");
@@ -32,8 +32,7 @@ describe("tools.listPublic", () => {
     const [tool, ...rest] = await t.query(api.tools.listPublic, {});
 
     expect(rest).toEqual([]);
-    expect(Object.keys(tool).sort()).toEqual(["_id", "category", "name"]);
-    expect(tool).toMatchObject({ name: "Drill", category: "power_tools" });
+    expect(tool).toEqual({ name: "Drill", category: "power_tools" });
   });
 
   test("hides tools that are on loan", async () => {
@@ -230,16 +229,46 @@ describe("tools.remove", () => {
     ).rejects.toThrow("Not authorized");
   });
 
-  test("refuses to remove a tool on loan, even for an admin", async () => {
+  test("refuses to let an owner remove a tool on loan", async () => {
     const t = createTest();
     const owner = await addUser(t, "owner");
-    const admin = await addAdmin(t, "admin");
     const toolId = await addTool(owner.client);
     await t.run((ctx) => ctx.db.patch("tools", toolId, { status: "on_loan" }));
 
     await expect(
-      admin.client.mutation(api.tools.remove, { toolId }),
+      owner.client.mutation(api.tools.remove, { toolId }),
     ).rejects.toThrow("on loan");
+  });
+
+  test("lets an admin remove a tool on loan, closing the loan", async () => {
+    const t = createTest();
+    const owner = await addUser(t, "owner");
+    const borrower = await addUser(t, "borrower");
+    const admin = await addAdmin(t, "admin");
+    const toolId = await addTool(owner.client, "Drill");
+    const requestId = await borrower.client.mutation(api.requests.create, {
+      toolId,
+      startDate: "2026-06-20",
+      endDate: "2026-06-21",
+    });
+    await owner.client.mutation(api.requests.approve, { requestId });
+
+    await admin.client.mutation(api.tools.remove, { toolId });
+
+    const { page } = await borrower.client.query(api.requests.listMine, {
+      paginationOpts: FIRST_PAGE,
+    });
+    expect(page[0]).toMatchObject({ toolName: "Drill", status: "cancelled" });
+    expect(await t.run((ctx) => ctx.db.get("tools", toolId))).toBeNull();
+    const events = await t.run((ctx) =>
+      ctx.db
+        .query("automationEvents")
+        .withIndex("by_requestId", (q) => q.eq("requestId", requestId))
+        .collect(),
+    );
+    expect(
+      events.find((e) => e.event === "request.cancelled")?.recipientId,
+    ).toBe(borrower.id);
   });
 
   test("cancels pending requests, tells the borrower, and keeps history", async () => {

@@ -28,8 +28,9 @@ function hexToBytes(hex: string) {
 }
 
 /**
- * Verifies a call from n8n. The signature covers the method and path as well as
- * the body, so a captured signature can't be reused on another endpoint.
+ * Verifies a call from n8n. The signature covers the method, path and query as
+ * well as the body, so a captured signature can't be reused on another endpoint
+ * or with another cursor.
  */
 export async function verifyInboundRequest(
   request: Request,
@@ -43,14 +44,14 @@ export async function verifyInboundRequest(
   if (!timestamp || !/^\d+$/.test(timestamp) || !signature) return false;
   if (Math.abs(Date.now() - Number(timestamp)) > MAX_AGE_MS) return false;
 
-  const { pathname } = new URL(request.url);
+  const { pathname, search } = new URL(request.url);
   // subtle.verify compares in constant time.
   return crypto.subtle.verify(
     "HMAC",
     await hmacKey(secret, "verify"),
     signature,
     new TextEncoder().encode(
-      `${timestamp}.${request.method}.${pathname}.${body}`,
+      `${timestamp}.${request.method}.${pathname}${search}.${body}`,
     ),
   );
 }

@@ -2,8 +2,8 @@ import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AdminNavLink } from "@/components/admin-nav-link";
-import { RequireUser } from "@/components/require-user";
+import { AdminNavLink } from "@/features/admin/admin-nav-link";
+import { RequireUser } from "@/features/auth/require-user";
 
 const NAV_LINKS = [
   { href: "/tools", label: "All tools" },
@@ -12,7 +12,7 @@ const NAV_LINKS = [
   { href: "/incoming", label: "Incoming" },
 ];
 
-const NAV_LINK_CLASS = "hover:text-zinc-900 dark:hover:text-zinc-100";
+const NAV_LINK_CLASS = "hover:text-primary";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   // Redirects signed-out visitors. This is UX; Convex functions enforce authorization.
@@ -20,12 +20,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
+      <header className="border-b border-line">
         <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link href="/" className="font-semibold tracking-tight">
             LendLoop
           </Link>
-          <nav className="flex flex-1 flex-wrap gap-4 text-sm text-zinc-500">
+          <nav className="flex flex-1 flex-wrap gap-4 text-sm text-muted">
             {NAV_LINKS.map(({ href, label }) => (
               <Link key={href} href={href} className={NAV_LINK_CLASS}>
                 {label}

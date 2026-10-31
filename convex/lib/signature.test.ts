@@ -58,6 +58,28 @@ describe("verifyInboundRequest", () => {
     expect(await verifyInboundRequest(otherMethod, BODY, SECRET)).toBe(false);
   });
 
+  test("covers the query string", async () => {
+    const timestamp = String(Date.now());
+    const query = "?cursor=abc";
+    const signature = await signHex(
+      SECRET,
+      `${timestamp}.GET.${PATH}${query}.`,
+    );
+    const requestTo = (search: string) =>
+      new Request(`https://example.convex.site${PATH}${search}`, {
+        headers: {
+          "x-lendloop-timestamp": timestamp,
+          "x-lendloop-signature": signature,
+        },
+      });
+
+    expect(await verifyInboundRequest(requestTo(query), "", SECRET)).toBe(true);
+    expect(await verifyInboundRequest(requestTo("?cursor=x"), "", SECRET)).toBe(
+      false,
+    );
+    expect(await verifyInboundRequest(requestTo(""), "", SECRET)).toBe(false);
+  });
+
   test("rejects old and far-future timestamps", async () => {
     const tenMinutes = 10 * 60 * 1000;
     const old = await signedRequest({

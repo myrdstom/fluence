@@ -362,7 +362,7 @@ describe("the state machine", () => {
     );
     await expect(
       borrower.client.mutation(api.requests.cancel, { requestId }),
-    ).rejects.toThrow("can't be changed");
+    ).rejects.toThrow("Only a pending request");
 
     await owner.client.mutation(markReturned, { requestId });
     await expect(

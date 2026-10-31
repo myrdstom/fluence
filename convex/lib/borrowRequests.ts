@@ -8,7 +8,7 @@ export type RequestStatus = Infer<typeof requestStatusValidator>;
 
 const ALLOWED_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   pending: ["approved", "declined", "cancelled"],
-  approved: ["returned"],
+  approved: ["returned", "cancelled"],
   declined: [],
   cancelled: [],
   returned: [],

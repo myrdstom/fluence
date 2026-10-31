@@ -1,49 +1,56 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { daysBetween } from "./lib/dates";
-
-/** One run's worth. Anything beyond this is picked up by the next run. */
-const OVERDUE_BATCH_SIZE = 100;
 
 function reminderKey(requestId: string, reminderDate: string) {
   return `overdue_reminder:${requestId}:${reminderDate}`;
 }
 
 /**
- * Overdue loans not yet reminded on this date, so a re-run can't remind twice.
- * Returns only what a reminder needs: no lender details and no notes.
+ * One page of overdue loans with no sent reminder on this date. Paged so a large
+ * backlog can't hide newer loans behind the oldest ones.
+ *
+ * Returns only what a reminder needs: no lender details and no notes. A borrower
+ * with no email stays in the list with a null address, so the workflow reports
+ * that reminder as failed. idempotencyKey lets a provider drop a repeat if a send
+ * succeeded but its write-back didn't.
  */
 export const listOverdue = internalQuery({
-  args: { today: v.string() },
-  handler: async (ctx, { today }) => {
-    const loans = await ctx.db
+  args: { today: v.string(), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { today, paginationOpts }) => {
+    const results = await ctx.db
       .query("borrowRequests")
       .withIndex("by_status_and_endDate", (q) =>
         q.eq("status", "approved").lt("endDate", today),
       )
-      .take(OVERDUE_BATCH_SIZE);
+      .paginate(paginationOpts);
 
     const overdue = await Promise.all(
-      loans.map(async (loan) => {
+      results.page.map(async (loan) => {
+        const idempotencyKey = reminderKey(loan._id, today);
         const reminder = await ctx.db
           .query("automationEvents")
           .withIndex("by_idempotencyKey", (q) =>
-            q.eq("idempotencyKey", reminderKey(loan._id, today)),
+            q.eq("idempotencyKey", idempotencyKey),
           )
           .unique();
         if (reminder?.status === "sent") return null;
         const borrower = await ctx.db.get("users", loan.borrowerId);
-        if (!borrower?.email) return null;
         return {
           loanId: loan._id,
+          idempotencyKey,
           toolName: loan.toolName,
           dueDate: loan.endDate,
           daysOverdue: daysBetween(loan.endDate, today),
-          borrower: { name: borrower.name, email: borrower.email },
+          borrower: {
+            name: borrower?.name ?? null,
+            email: borrower?.email ?? null,
+          },
         };
       }),
     );
-    return overdue.filter((loan) => loan !== null);
+    return { ...results, page: overdue.filter((loan) => loan !== null) };
   },
 });
 

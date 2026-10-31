@@ -14,6 +14,7 @@ export default defineConfig({
     unstubGlobals: true,
     coverage: {
       provider: "v8",
+      reportOnFailure: true,
       // React components are exercised by the Playwright tests instead.
       include: ["convex/**/*.ts", "src/lib/**/*.ts"],
       exclude: [

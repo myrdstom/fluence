@@ -333,7 +333,8 @@ describe("requests.markReturned", () => {
 
     const request = await getRequest(t, requestId);
     expect(request?.status).toBe("returned");
-    expect(request?.returnedAt).toBe(Date.now());
+    // convex-test can nudge its clock forward, so this can't be an exact match.
+    expect(request?.returnedAt).toBeGreaterThanOrEqual(Date.now());
     expect(await getTool(t, toolId)).toMatchObject({ status: "available" });
     const events = await getEvents(t, requestId);
     expect(

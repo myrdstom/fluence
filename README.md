@@ -104,7 +104,7 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 | `npm run test:coverage` | Runs the unit tests and reports coverage    |
 | `npm run test:e2e`      | Runs the Playwright tests                   |
 
-Unit tests use Vitest and `convex-test`, which runs Convex functions against an in-memory backend. They live next to the code as `*.test.ts`, and Convex doesn't deploy them. Coverage measures `convex/` and `src/lib/`; React components are exercised by the Playwright tests instead.
+Unit tests use Vitest and `convex-test`, which runs Convex functions against an in-memory backend. They live next to the code as `*.test.ts`, and Convex doesn't deploy them. Coverage measures `convex/` and `src/lib/`, and CI fails if it drops below 90% of statements, functions and lines or 85% of branches. React components are exercised by the Playwright tests instead.
 
 Playwright tests live in `e2e/`. Install the browser once with `npx playwright install chromium`. The signed-in test creates and deletes a tool on your dev deployment, using the Clerk user in `E2E_USER_EMAIL`, and is skipped if that isn't set.
 

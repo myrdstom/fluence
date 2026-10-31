@@ -15,6 +15,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reportOnFailure: true,
+      thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },
       // React components are exercised by the Playwright tests instead.
       include: ["convex/**/*.ts", "src/lib/**/*.ts"],
       exclude: [

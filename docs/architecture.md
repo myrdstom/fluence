@@ -223,8 +223,8 @@ The public query returns an explicit projection, so owner details can't leak whe
 ## Testing
 
 - **Unit tests** use Vitest and `convex-test` to run Convex functions against an in-memory backend, including the authorization rules. They live next to the code as `*.test.ts`, and Convex doesn't deploy them. CI requires at least 90% coverage of statements, functions, and lines, and 85% of branches, across `convex/` and `src/lib/`.
-- **End-to-end tests** use Playwright against a production build, covering the public page, sign-in redirects, and a lender's listing flow. They also exercise the React components, which unit coverage doesn't measure.
-- **CI** also checks formatting, lint, and types on every push.
+- **End-to-end tests** use Playwright, covering the public page, sign-in redirects, and a lender's listing flow. They also exercise the React components, which unit coverage doesn't measure. They run locally against the dev server, not in CI.
+- **CI** runs the unit tests and checks formatting, lint, and types on every push.
 
 ## Known limitations
 

@@ -15,5 +15,5 @@ A neighborhood tool-lending board: neighbors list tools, request to borrow from 
   - [Security](docs/architecture.md#security)
   - [Data minimization](docs/architecture.md#data-minimization)
   - [Reliability](docs/architecture.md#reliability)
-- [Development](docs/development.md): commands, tests, and CI secrets.
+- [Development](docs/development.md): commands, tests, and CI.
 - [Running in production](docs/production.md): what I would change before real users rely on it.

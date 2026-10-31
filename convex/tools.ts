@@ -175,7 +175,8 @@ export const remove = mutation({
         q.eq("toolId", toolId).eq("status", "pending"),
       );
     for await (const request of pendingRequests) {
-      await setRequestStatus(ctx, request, "cancelled");
+      // The borrower needs to know, since they didn't cancel it themselves.
+      await setRequestStatus(ctx, request, "cancelled", "borrower");
     }
     await ctx.db.delete("tools", toolId);
   },

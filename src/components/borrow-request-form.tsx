@@ -17,7 +17,11 @@ export function BorrowRequestForm({ toolId }: { toolId: Id<"tools"> }) {
 
   if (!isOpen) {
     return (
-      <button type="button" onClick={() => setIsOpen(true)} className={buttonPrimary}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className={buttonPrimary}
+      >
         Request to borrow
       </button>
     );

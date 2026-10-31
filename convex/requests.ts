@@ -5,6 +5,7 @@ import { mutation, query, type QueryCtx } from "./_generated/server";
 import { requireUser } from "./lib/auth";
 import { setRequestStatus } from "./lib/borrowRequests";
 import { MAX_LOAN_DAYS } from "./lib/constants";
+import { enqueueRequestNotification } from "./lib/notifications";
 import {
   daysBetween,
   earliestLocalToday,
@@ -13,8 +14,12 @@ import {
 } from "./lib/dates";
 
 const OPEN_REQUESTS_LIMIT = 50;
+const ACTIVITY_LIMIT = 3;
 
-async function getRequestOrThrow(ctx: QueryCtx, requestId: Id<"borrowRequests">) {
+async function getRequestOrThrow(
+  ctx: QueryCtx,
+  requestId: Id<"borrowRequests">,
+) {
   const request = await ctx.db.get("borrowRequests", requestId);
   if (!request) throw new ConvexError("Request not found");
   return request;
@@ -34,7 +39,18 @@ async function toRequestView(
   otherPartyId: Id<"users">,
 ) {
   const otherParty = await ctx.db.get("users", otherPartyId);
+  const activity = await ctx.db
+    .query("automationEvents")
+    .withIndex("by_requestId", (q) => q.eq("requestId", request._id))
+    .order("desc")
+    .take(ACTIVITY_LIMIT);
   return {
+    activity: activity.map(({ _id, kind, status, occurredAt }) => ({
+      _id,
+      kind,
+      status,
+      occurredAt,
+    })),
     _id: request._id,
     _creationTime: request._creationTime,
     toolName: request.toolName,
@@ -86,22 +102,33 @@ export const create = mutation({
     const existing = await ctx.db
       .query("borrowRequests")
       .withIndex("by_borrowerId_and_toolId_and_status", (q) =>
-        q.eq("borrowerId", user._id).eq("toolId", toolId).eq("status", "pending"),
+        q
+          .eq("borrowerId", user._id)
+          .eq("toolId", toolId)
+          .eq("status", "pending"),
       )
       .first();
     if (existing) {
       throw new ConvexError("You already have a pending request for this tool");
     }
 
-    return ctx.db.insert("borrowRequests", {
+    const request = {
       toolId,
       borrowerId: user._id,
       ownerId: tool.ownerId,
       toolName: tool.name,
       startDate,
       endDate,
-      status: "pending",
-    });
+      status: "pending" as const,
+    };
+    const requestId = await ctx.db.insert("borrowRequests", request);
+    await enqueueRequestNotification(
+      ctx,
+      { ...request, _id: requestId },
+      "request.created",
+      "owner",
+    );
+    return requestId;
   },
 });
 
@@ -144,7 +171,9 @@ export const listIncomingOpen = query({
     ]);
     const toViews = (requests: Doc<"borrowRequests">[]) =>
       Promise.all(
-        requests.map((request) => toRequestView(ctx, request, request.borrowerId)),
+        requests.map((request) =>
+          toRequestView(ctx, request, request.borrowerId),
+        ),
       );
     return { pending: await toViews(pending), active: await toViews(active) };
   },

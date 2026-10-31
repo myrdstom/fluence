@@ -8,11 +8,16 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_borrowRequests from "../lib/borrowRequests.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_dates from "../lib/dates.js";
+import type * as lib_notifications from "../lib/notifications.js";
+import type * as lib_signature from "../lib/signature.js";
+import type * as notifications from "../notifications.js";
+import type * as reminders from "../reminders.js";
 import type * as requests from "../requests.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
@@ -24,11 +29,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/borrowRequests": typeof lib_borrowRequests;
   "lib/constants": typeof lib_constants;
   "lib/dates": typeof lib_dates;
+  "lib/notifications": typeof lib_notifications;
+  "lib/signature": typeof lib_signature;
+  notifications: typeof notifications;
+  reminders: typeof reminders;
   requests: typeof requests;
   tools: typeof tools;
   users: typeof users;

@@ -66,7 +66,9 @@ export function ToolForm({
           required
           maxLength={TOOL_NAME_MAX_LENGTH}
           value={values.name}
-          onChange={(event) => setValues({ ...values, name: event.target.value })}
+          onChange={(event) =>
+            setValues({ ...values, name: event.target.value })
+          }
           placeholder="Cordless drill"
           className={`${fieldInput} font-normal`}
         />
@@ -93,7 +95,10 @@ export function ToolForm({
           <select
             value={values.condition}
             onChange={(event) =>
-              setValues({ ...values, condition: event.target.value as Condition })
+              setValues({
+                ...values,
+                condition: event.target.value as Condition,
+              })
             }
             className={`${fieldInput} font-normal`}
           >

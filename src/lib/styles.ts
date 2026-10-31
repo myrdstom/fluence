@@ -12,3 +12,11 @@ export const fieldInput =
 
 export const card =
   "rounded-lg border border-zinc-200 p-4 dark:border-zinc-800";
+
+export function pill(isActive: boolean) {
+  return `rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
+    isActive
+      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+      : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+  }`;
+}

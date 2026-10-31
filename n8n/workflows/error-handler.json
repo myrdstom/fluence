@@ -1,0 +1,93 @@
+{
+  "id": "LendLoopErrors01",
+  "name": "LendLoop: Error handler",
+  "active": false,
+  "nodes": [
+    {
+      "id": "on-workflow-error",
+      "name": "On Workflow Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {}
+    },
+    {
+      "id": "log-and-sign-failure",
+      "name": "Log and Sign Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Runs when another workflow fails. Reports only what's needed to investigate:\n// no input data, and a capped message in case a provider echoes personal data.\nconst crypto = require('crypto');\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst { execution, workflow } = $input.first().json;\nconst failure = {\n  executionId: String(execution?.id ?? `unknown-${Date.now()}`),\n  workflowName: workflow?.name ?? 'Unknown workflow',\n  nodeName: execution?.lastNodeExecuted ?? 'Unknown node',\n  message: (execution?.error?.message ?? 'Unknown error').slice(0, 300),\n};\nconsole.error('[LendLoop workflow failure]', JSON.stringify(failure));\n\nconst body = JSON.stringify(failure);\nconst timestamp = String(Date.now());\nconst signature = crypto.createHmac('sha256', secret)\n  .update(`${timestamp}.POST./n8n/workflow-failure.${body}`)\n  .digest('hex');\nreturn [{ json: { timestamp, signature, body } }];"
+      }
+    },
+    {
+      "id": "report-failure-to-convex",
+      "name": "Report Failure to Convex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONVEX_SITE_URL }}/n8n/workflow-failure",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-lendloop-timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "x-lendloop-signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "On Workflow Error": {
+      "main": [
+        [
+          {
+            "node": "Log and Sign Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log and Sign Failure": {
+      "main": [
+        [
+          {
+            "node": "Report Failure to Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "pinData": {},
+  "tags": [],
+  "versionId": "LendLoopErrors01-v1"
+}

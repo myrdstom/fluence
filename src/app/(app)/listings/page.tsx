@@ -6,10 +6,18 @@ import { ToolStatusBadge } from "@/components/badges";
 import { LoadMore } from "@/components/load-more";
 import { ToolForm } from "@/components/tool-form";
 import { getErrorMessage } from "@/lib/errors";
-import { buttonDanger, buttonPrimary, buttonSecondary, card } from "@/lib/styles";
+import {
+  buttonDanger,
+  buttonPrimary,
+  buttonSecondary,
+  card,
+} from "@/lib/styles";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
-import { CATEGORY_LABELS, CONDITION_LABELS } from "../../../../convex/lib/constants";
+import {
+  CATEGORY_LABELS,
+  CONDITION_LABELS,
+} from "../../../../convex/lib/constants";
 
 const PAGE_SIZE = 20;
 
@@ -44,7 +52,8 @@ function ListingCard({
         <ToolStatusBadge status={tool.status} />
       </div>
       <p className="mt-1 text-sm text-zinc-500">
-        {CATEGORY_LABELS[tool.category]} · {CONDITION_LABELS[tool.condition]} condition
+        {CATEGORY_LABELS[tool.category]} · {CONDITION_LABELS[tool.condition]}{" "}
+        condition
       </p>
       <p className="mt-2 text-sm">{tool.description}</p>
       {error && (
@@ -140,7 +149,8 @@ export default function ListingsPage() {
       ) : results.length === 0 ? (
         !isCreating && (
           <p className="mt-6 text-sm text-zinc-500">
-            You haven&apos;t listed any tools yet. What could a neighbor borrow from you?
+            You haven&apos;t listed any tools yet. What could a neighbor borrow
+            from you?
           </p>
         )
       ) : (

@@ -21,7 +21,11 @@ export function RequireUser({ children }: { children: ReactNode }) {
   }, [isAuthenticated, storeUser]);
 
   if (syncError) {
-    return <p role="alert" className="text-sm text-red-700 dark:text-red-400">{syncError}</p>;
+    return (
+      <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        {syncError}
+      </p>
+    );
   }
   if (!isLoading && !isAuthenticated) {
     return (

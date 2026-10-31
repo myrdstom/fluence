@@ -102,7 +102,9 @@ export default function IncomingPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">Incoming requests</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Incoming requests
+      </h1>
       {open === undefined ? (
         <p className="mt-6 text-sm text-zinc-500">Loading requests…</p>
       ) : (
@@ -131,7 +133,10 @@ export default function IncomingPage() {
           </Section>
           <Section
             title="History"
-            isEmpty={history.status !== "LoadingFirstPage" && history.results.length === 0}
+            isEmpty={
+              history.status !== "LoadingFirstPage" &&
+              history.results.length === 0
+            }
             emptyText="Finished requests will appear here."
           >
             {history.results.map((request) => (

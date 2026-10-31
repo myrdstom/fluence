@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getErrorMessage } from "./errors";
+import { getErrorMessage } from "./errors/errors";
 
 /** Tracks one in-flight mutation so a component can disable buttons and show failures. */
 export function useAsyncAction() {

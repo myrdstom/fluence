@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
-import { signHex } from "./lib/signature";
+import { signHex } from "./lib/signature/signature";
 import { addTool, addUser, createTest, type TestConvex } from "./test.helpers";
 
 const SECRET = "inbound-secret";

@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { daysBetween } from "./lib/dates";
+import { daysBetween } from "./lib/dates/dates";
 
 function reminderKey(requestId: string, reminderDate: string) {
   return `overdue_reminder:${requestId}:${reminderDate}`;

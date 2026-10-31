@@ -49,7 +49,7 @@ convex/                Backend
   http.ts              Signed endpoints called by n8n
   lib/auth.ts          requireUser, requireAdmin, and ownership checks
   lib/borrowRequests.ts  The request state machine
-  lib/signature.ts     HMAC signing and verification
+  lib/signature/       HMAC signing and verification
 src/
   app/                 Routes: the public page and the signed-in (app) group
   features/            Components that read or write Convex data, by domain
@@ -222,7 +222,7 @@ The public query returns an explicit projection, so owner details can't leak whe
 
 ## Testing
 
-- **Unit tests** use Vitest and `convex-test` to run Convex functions against an in-memory backend, including the authorization rules. They live next to the code as `*.test.ts`, and Convex doesn't deploy them. CI requires at least 90% coverage of statements, functions, and lines, and 85% of branches, across `convex/` and `src/lib/`.
+- **Unit tests** use Vitest and `convex-test` to run Convex functions against an in-memory backend, including the authorization rules. They live next to the code as `*.test.ts`, and Convex doesn't deploy them. A tested helper in `lib/` gets its own folder (`lib/dates/dates.ts` and `lib/dates/dates.test.ts`). Convex function modules stay flat with their tests beside them, because a module's path sets its API name: `convex/tools/tools.ts` would turn `api.tools.list` into `api.tools.tools.list`. CI requires at least 90% coverage of statements, functions, and lines, and 85% of branches, across `convex/` and `src/lib/`.
 - **End-to-end tests** use Playwright, covering the public page, sign-in redirects, and a lender's listing flow. They also exercise the React components, which unit coverage doesn't measure. They run locally against the dev server, not in CI.
 - **CI** runs the unit tests and checks formatting, lint, and types on every push.
 

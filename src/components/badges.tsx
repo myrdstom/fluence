@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { isOverdue } from "@/lib/dates";
+import { isOverdue } from "@/lib/dates/dates";
 
 const TONES = {
   success: "bg-success-surface text-success-ink",

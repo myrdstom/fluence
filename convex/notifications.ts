@@ -5,7 +5,7 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
-import { signHex } from "./lib/signature";
+import { signHex } from "./lib/signature/signature";
 
 /** Wait before each retry. After the last one the event is marked failed. */
 const RETRY_DELAYS_MS = [30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000];

@@ -1,8 +1,8 @@
 import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction, type ActionCtx } from "./_generated/server";
-import { isCalendarDate, utcDate } from "./lib/dates";
-import { verifyInboundRequest } from "./lib/signature";
+import { isCalendarDate, utcDate } from "./lib/dates/dates";
+import { verifyInboundRequest } from "./lib/signature/signature";
 
 const MAX_TEXT_LENGTH = 500;
 const OVERDUE_PAGE_SIZE = 100;

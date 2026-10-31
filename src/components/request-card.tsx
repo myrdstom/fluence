@@ -5,7 +5,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { api } from "@convex/_generated/api";
 import { RequestBadges, TrustedLenderBadge } from "@/components/badges";
 import { CardHeader } from "@/components/card-header";
-import { formatDateRange, formatTimeAgo } from "@/lib/dates";
+import { formatDateRange, formatTimeAgo } from "@/lib/dates/dates";
 import { card, mutedText } from "@/lib/styles";
 
 export type RequestView = FunctionReturnType<

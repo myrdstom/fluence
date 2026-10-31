@@ -4,7 +4,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import { ErrorMessage } from "@/components/error-message";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage } from "@/lib/errors/errors";
 import { mutedText } from "@/lib/styles";
 
 /**

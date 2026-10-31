@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { getErrorMessage } from "@/lib/errors";
-import { buttonPrimary, buttonSecondary, card, fieldInput } from "@/lib/styles";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -12,7 +10,17 @@ import {
   TOOL_NAME_MAX_LENGTH,
   type Category,
   type Condition,
-} from "../../convex/lib/constants";
+} from "@convex/lib/constants";
+import { ErrorMessage } from "@/components/error-message";
+import { findOption } from "@/lib/options";
+import {
+  buttonPrimary,
+  buttonSecondary,
+  card,
+  fieldInput,
+  fieldLabel,
+} from "@/lib/styles";
+import { useAsyncAction } from "@/lib/use-async-action";
 
 export type ToolFormValues = {
   name: string;
@@ -28,6 +36,40 @@ const EMPTY_VALUES: ToolFormValues = {
   description: "",
 };
 
+function SelectField<T extends string>({
+  label,
+  options,
+  labels,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly T[];
+  labels: Record<T, string>;
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <label className={fieldLabel}>
+      {label}
+      <select
+        value={value}
+        onChange={(event) => {
+          const option = findOption(options, event.target.value);
+          if (option) onChange(option);
+        }}
+        className={fieldInput}
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {labels[option]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function ToolForm({
   title,
   submitLabel,
@@ -42,25 +84,17 @@ export function ToolForm({
   onCancel: () => void;
 }) {
   const [values, setValues] = useState(initialValues);
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const { run, isPending, error } = useAsyncAction();
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setIsSaving(true);
-    try {
-      await onSubmit(values);
-    } catch (submitError) {
-      setError(getErrorMessage(submitError));
-      setIsSaving(false);
-    }
+    void run(() => onSubmit(values));
   }
 
   return (
     <form onSubmit={handleSubmit} className={`${card} space-y-4`}>
       <h2 className="font-medium">{title}</h2>
-      <label className="block text-sm font-medium">
+      <label className={fieldLabel}>
         Name
         <input
           required
@@ -70,47 +104,26 @@ export function ToolForm({
             setValues({ ...values, name: event.target.value })
           }
           placeholder="Cordless drill"
-          className={`${fieldInput} font-normal`}
+          className={fieldInput}
         />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          Category
-          <select
-            value={values.category}
-            onChange={(event) =>
-              setValues({ ...values, category: event.target.value as Category })
-            }
-            className={`${fieldInput} font-normal`}
-          >
-            {CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm font-medium">
-          Condition
-          <select
-            value={values.condition}
-            onChange={(event) =>
-              setValues({
-                ...values,
-                condition: event.target.value as Condition,
-              })
-            }
-            className={`${fieldInput} font-normal`}
-          >
-            {CONDITIONS.map((condition) => (
-              <option key={condition} value={condition}>
-                {CONDITION_LABELS[condition]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Category"
+          options={CATEGORIES}
+          labels={CATEGORY_LABELS}
+          value={values.category}
+          onChange={(category) => setValues({ ...values, category })}
+        />
+        <SelectField
+          label="Condition"
+          options={CONDITIONS}
+          labels={CONDITION_LABELS}
+          value={values.condition}
+          onChange={(condition) => setValues({ ...values, condition })}
+        />
       </div>
-      <label className="block text-sm font-medium">
+      <label className={fieldLabel}>
         Description
         <textarea
           required
@@ -121,17 +134,13 @@ export function ToolForm({
             setValues({ ...values, description: event.target.value })
           }
           placeholder="18V, comes with two batteries and a charger."
-          className={`${fieldInput} font-normal`}
+          className={fieldInput}
         />
       </label>
-      {error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
-          {error}
-        </p>
-      )}
+      <ErrorMessage message={error} />
       <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={isSaving} className={buttonPrimary}>
-          {isSaving ? "Saving…" : submitLabel}
+        <button type="submit" disabled={isPending} className={buttonPrimary}>
+          {isPending ? "Saving…" : submitLabel}
         </button>
         <button type="button" onClick={onCancel} className={buttonSecondary}>
           Cancel

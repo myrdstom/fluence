@@ -29,69 +29,30 @@
       "parameters": {}
     },
     {
-      "id": "sign-overdue-request",
-      "name": "Sign Overdue Request",
+      "id": "fetch-overdue-loans",
+      "name": "Fetch Overdue Loans",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [240, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const crypto = require('crypto');\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst timestamp = String(Date.now());\nconst signature = crypto.createHmac('sha256', secret)\n  .update(`${timestamp}.GET./n8n/overdue-loans.`)\n  .digest('hex');\nreturn [{ json: { timestamp, signature } }];"
-      }
-    },
-    {
-      "id": "fetch-overdue-loans",
-      "name": "Fetch Overdue Loans",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [480, 300],
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $env.CONVEX_SITE_URL }}/n8n/overdue-loans",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-lendloop-timestamp",
-              "value": "={{ $json.timestamp }}"
-            },
-            {
-              "name": "x-lendloop-signature",
-              "value": "={{ $json.signature }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 15000
-        }
+        "jsCode": "// Follows the cursor until every overdue loan is fetched, so a backlog bigger\n// than one page still gets reminders. Each page is signed separately, because\n// the signature covers the query string and the timestamp.\nconst crypto = require('crypto');\nconst MAX_PAGES = 100;\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst items = [];\nlet cursor = null;\nfor (let pages = 0; pages < MAX_PAGES; pages++) {\n  const target = '/n8n/overdue-loans' + (cursor === null ? '' : `?cursor=${encodeURIComponent(cursor)}`);\n  const timestamp = String(Date.now());\n  const signature = crypto.createHmac('sha256', secret)\n    .update(`${timestamp}.GET.${target}.`)\n    .digest('hex');\n  const page = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `${$env.CONVEX_SITE_URL}${target}`,\n    headers: { 'x-lendloop-timestamp': timestamp, 'x-lendloop-signature': signature },\n    json: true,\n    timeout: 15000,\n  });\n  for (const loan of page.loans) {\n    items.push({ json: { ...loan, reminderDate: page.reminderDate } });\n  }\n  if (page.isDone) return items;\n  cursor = page.continueCursor;\n}\nthrow new Error(`Overdue loans did not finish within ${MAX_PAGES} pages`);"
       },
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000
     },
     {
-      "id": "split-into-loans",
-      "name": "Split Into Loans",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [720, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "const { reminderDate, loans } = $input.first().json;\nreturn loans.map((loan) => ({ json: { ...loan, reminderDate } }));"
-      }
-    },
-    {
       "id": "send-mock-reminder",
       "name": "Send Mock Reminder",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300],
+      "position": [480, 300],
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "// Mock channel: replace this node with Email, Slack, or similar to send for real.\nconst maskEmail = (email) => email.replace(/^(.).*(@.*)$/, '$1***$2');\n\nconst { loanId, toolName, dueDate, daysOverdue, borrower } = $json;\nconst reminder = {\n  channel: 'mock',\n  loanId,\n  to: maskEmail(borrower.email),\n  subject: `Please return the ${toolName}`,\n  message: `It was due on ${dueDate}, ${daysOverdue} day(s) ago.`,\n};\nconsole.log('[LendLoop reminder]', JSON.stringify(reminder));\nreturn { json: reminder };"
+        "jsCode": "// Mock channel: replace this node with Email, Slack, or similar to send for real.\n// A real provider should get idempotencyKey, since a send can succeed while its\n// write-back fails, and then the next run sends it again.\nconst maskEmail = (email) => email.replace(/^(.).*(@.*)$/, '$1***$2');\n\nconst { loanId, idempotencyKey, toolName, dueDate, daysOverdue, borrower } = $json;\n// Takes the error output below, so this is reported as a failed reminder.\nif (!borrower.email) throw new Error('Borrower has no email address');\nconst reminder = {\n  channel: 'mock',\n  loanId,\n  idempotencyKey,\n  to: maskEmail(borrower.email),\n  subject: `Please return the ${toolName}`,\n  message: `It was due on ${dueDate}, ${daysOverdue} day(s) ago.`,\n};\nconsole.log('[LendLoop reminder]', JSON.stringify(reminder));\nreturn { json: reminder };"
       },
       "onError": "continueErrorOutput",
       "retryOnFail": true,
@@ -103,7 +64,7 @@
       "name": "Mark Sent",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1200, 200],
+      "position": [720, 200],
       "parameters": {
         "assignments": {
           "assignments": [
@@ -123,7 +84,7 @@
       "name": "Mark Failed",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1200, 420],
+      "position": [720, 420],
       "parameters": {
         "assignments": {
           "assignments": [
@@ -143,11 +104,11 @@
       "name": "Sign Write-back",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 300],
+      "position": [960, 300],
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "// Signs the exact string that the next node sends. The write-back doesn't\n// depend on the send's output, so a failed send is reported as failed.\nconst crypto = require('crypto');\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst { loanId, reminderDate } = $('Split Into Loans').item.json;\nconst body = JSON.stringify({ loanId, reminderDate, status: $json.status });\nconst timestamp = String(Date.now());\nconst signature = crypto.createHmac('sha256', secret)\n  .update(`${timestamp}.POST./n8n/reminder-status.${body}`)\n  .digest('hex');\nreturn { json: { timestamp, signature, body } };"
+        "jsCode": "// Signs the exact string that the next node sends. The write-back doesn't\n// depend on the send's output, so a failed send is reported as failed.\nconst crypto = require('crypto');\nconst secret = $env.CONVEX_INBOUND_SECRET;\nif (!secret) throw new Error('CONVEX_INBOUND_SECRET is not set');\n\nconst { loanId, reminderDate } = $('Fetch Overdue Loans').item.json;\nconst body = JSON.stringify({ loanId, reminderDate, status: $json.status });\nconst timestamp = String(Date.now());\nconst signature = crypto.createHmac('sha256', secret)\n  .update(`${timestamp}.POST./n8n/reminder-status.${body}`)\n  .digest('hex');\nreturn { json: { timestamp, signature, body } };"
       }
     },
     {
@@ -155,7 +116,7 @@
       "name": "Record Reminder Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1680, 300],
+      "position": [1200, 300],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.CONVEX_SITE_URL }}/n8n/reminder-status",
@@ -190,7 +151,7 @@
       "main": [
         [
           {
-            "node": "Sign Overdue Request",
+            "node": "Fetch Overdue Loans",
             "type": "main",
             "index": 0
           }
@@ -198,17 +159,6 @@
       ]
     },
     "Run Manually": {
-      "main": [
-        [
-          {
-            "node": "Sign Overdue Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sign Overdue Request": {
       "main": [
         [
           {
@@ -220,17 +170,6 @@
       ]
     },
     "Fetch Overdue Loans": {
-      "main": [
-        [
-          {
-            "node": "Split Into Loans",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Into Loans": {
       "main": [
         [
           {

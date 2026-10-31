@@ -1,22 +1,88 @@
 @import "tailwindcss";
 
 :root {
+  /* Draws native controls, such as the date picker icon, to suit the theme. */
+  color-scheme: light dark;
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --muted: var(--color-zinc-500);
+  --line: var(--color-zinc-200);
+  --input: var(--color-zinc-300);
+  --focus-ring: var(--color-zinc-500);
+  --surface-hover: var(--color-zinc-100);
+  --primary: var(--color-zinc-900);
+  --primary-hover: var(--color-zinc-700);
+  --on-primary: var(--color-white);
+  --danger: var(--color-red-700);
+  --danger-solid: var(--color-red-700);
+  --danger-solid-hover: var(--color-red-600);
+  --on-danger: var(--color-white);
+  --option-surface: Canvas;
+  --success-surface: var(--color-emerald-100);
+  --success-ink: var(--color-emerald-800);
+  --warning-surface: var(--color-amber-100);
+  --warning-ink: var(--color-amber-800);
+  --info-surface: var(--color-sky-100);
+  --info-ink: var(--color-sky-800);
+  --danger-surface: var(--color-red-100);
+  --danger-ink: var(--color-red-800);
+  --neutral-surface: var(--color-zinc-100);
+  --neutral-ink: var(--color-zinc-700);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --line: var(--color-zinc-800);
+    --input: var(--color-zinc-700);
+    --surface-hover: var(--color-zinc-800);
+    --primary: var(--color-zinc-100);
+    --primary-hover: var(--color-zinc-300);
+    --on-primary: var(--color-zinc-900);
+    --danger: var(--color-red-400);
+    --option-surface: var(--color-zinc-900);
+    --success-surface: var(--color-emerald-950);
+    --success-ink: var(--color-emerald-300);
+    --warning-surface: var(--color-amber-950);
+    --warning-ink: var(--color-amber-300);
+    --info-surface: var(--color-sky-950);
+    --info-ink: var(--color-sky-300);
+    --danger-surface: var(--color-red-950);
+    --danger-ink: var(--color-red-300);
+    --neutral-surface: var(--color-zinc-800);
+    --neutral-ink: var(--color-zinc-300);
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-input: var(--input);
+  --color-focus-ring: var(--focus-ring);
+  --color-surface-hover: var(--surface-hover);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-danger: var(--danger);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-hover: var(--danger-solid-hover);
+  --color-on-danger: var(--on-danger);
+  --color-option-surface: var(--option-surface);
+  --color-success-surface: var(--success-surface);
+  --color-success-ink: var(--success-ink);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-ink: var(--warning-ink);
+  --color-info-surface: var(--info-surface);
+  --color-info-ink: var(--info-ink);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-ink: var(--danger-ink);
+  --color-neutral-surface: var(--neutral-surface);
+  --color-neutral-ink: var(--neutral-ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {

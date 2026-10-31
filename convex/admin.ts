@@ -6,7 +6,11 @@ import { requireAdmin } from "./lib/auth";
 /** All loans. Active ones sort by due date, so the most overdue come first. */
 export const listLoans = query({
   args: {
-    status: v.union(v.literal("approved"), v.literal("returned")),
+    status: v.union(
+      v.literal("approved"),
+      v.literal("returned"),
+      v.literal("closed"),
+    ),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { status, paginationOpts }) => {

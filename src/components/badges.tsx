@@ -1,5 +1,25 @@
-const badge =
-  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium";
+import type { ReactNode } from "react";
+import { isOverdue } from "@/lib/dates";
+
+const TONES = {
+  success: "bg-success-surface text-success-ink",
+  warning: "bg-warning-surface text-warning-ink",
+  info: "bg-info-surface text-info-ink",
+  danger: "bg-danger-surface text-danger-ink",
+  neutral: "bg-neutral-surface text-neutral-ink",
+} as const;
+
+type Tone = keyof typeof TONES;
+
+function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TONES[tone]}`}
+    >
+      {children}
+    </span>
+  );
+}
 
 export function ToolStatusBadge({
   status,
@@ -7,96 +27,63 @@ export function ToolStatusBadge({
   status: "available" | "on_loan";
 }) {
   return status === "available" ? (
-    <span
-      className={`${badge} bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300`}
-    >
-      Available
-    </span>
+    <Badge tone="success">Available</Badge>
   ) : (
-    <span
-      className={`${badge} bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300`}
-    >
-      On loan
-    </span>
+    <Badge tone="warning">On loan</Badge>
   );
 }
 
 export function TrustedLenderBadge() {
-  return (
-    <span
-      className={`${badge} bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300`}
-    >
-      Trusted Lender
-    </span>
-  );
+  return <Badge tone="info">Trusted Lender</Badge>;
 }
 
-const REQUEST_STATUS_STYLES = {
-  pending: {
-    label: "Pending",
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  },
-  approved: {
-    label: "On loan",
-    className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-  },
-  declined: {
-    label: "Declined",
-    className: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  },
-  cancelled: {
-    label: "Cancelled",
-    className: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  },
-  returned: {
-    label: "Returned",
-    className: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
-  },
-} as const;
+export function OverdueBadge() {
+  return <Badge tone="danger">Overdue</Badge>;
+}
+
+const REQUEST_STATUSES = {
+  pending: { label: "Pending", tone: "warning" },
+  approved: { label: "On loan", tone: "success" },
+  declined: { label: "Declined", tone: "neutral" },
+  cancelled: { label: "Cancelled", tone: "neutral" },
+  returned: { label: "Returned", tone: "info" },
+  closed: { label: "Closed", tone: "neutral" },
+} as const satisfies Record<string, { label: string; tone: Tone }>;
 
 export function RequestStatusBadge({
   status,
 }: {
-  status: keyof typeof REQUEST_STATUS_STYLES;
+  status: keyof typeof REQUEST_STATUSES;
 }) {
-  const { label, className } = REQUEST_STATUS_STYLES[status];
-  return <span className={`${badge} ${className}`}>{label}</span>;
+  const { label, tone } = REQUEST_STATUSES[status];
+  return <Badge tone={tone}>{label}</Badge>;
 }
 
-export function OverdueBadge() {
+/** A request's status, plus an overdue warning for late active loans. */
+export function RequestBadges({
+  request,
+}: {
+  request: { status: keyof typeof REQUEST_STATUSES; endDate: string };
+}) {
   return (
-    <span
-      className={`${badge} bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300`}
-    >
-      Overdue
-    </span>
+    <>
+      {isOverdue(request) && <OverdueBadge />}
+      <RequestStatusBadge status={request.status} />
+    </>
   );
 }
 
-const AUTOMATION_STATUS_STYLES = {
-  pending: {
-    label: "Sending",
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  },
-  sent: {
-    label: "Sent",
-    className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-  },
-  failed: {
-    label: "Failed",
-    className: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
-  },
-} as const;
+const AUTOMATION_STATUSES = {
+  pending: { label: "Sending", tone: "warning" },
+  sent: { label: "Sent", tone: "success" },
+  failed: { label: "Failed", tone: "danger" },
+} as const satisfies Record<string, { label: string; tone: Tone }>;
 
 export function AutomationStatusBadge({
   status,
 }: {
-  status: keyof typeof AUTOMATION_STATUS_STYLES;
+  status: keyof typeof AUTOMATION_STATUSES;
 }) {
-  const { label, className } = AUTOMATION_STATUS_STYLES[status];
-  return <span className={`${badge} ${className}`}>{label}</span>;
+  const { label, tone } = AUTOMATION_STATUSES[status];
+  return <Badge tone={tone}>{label}</Badge>;
 }

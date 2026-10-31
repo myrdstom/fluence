@@ -95,7 +95,24 @@ describe("GET /n8n/overdue-loans", () => {
     expect(await response.json()).toEqual({
       reminderDate: TODAY,
       loans: [expect.objectContaining({ loanId, daysOverdue: 3 })],
+      continueCursor: expect.any(String),
+      isDone: true,
     });
+  });
+
+  test("continues from a signed cursor", async () => {
+    const { t } = await setupOverdueLoan();
+    const first = await signedFetch(t, "GET", "/n8n/overdue-loans");
+    const { continueCursor } = await first.json();
+
+    const response = await signedFetch(
+      t,
+      "GET",
+      `/n8n/overdue-loans?cursor=${encodeURIComponent(continueCursor)}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ loans: [], isDone: true });
   });
 });
 

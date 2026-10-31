@@ -2,11 +2,13 @@
 
 import { useMutation } from "convex/react";
 import { useState, type FormEvent } from "react";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { DateField } from "@/components/date-field";
+import { ErrorMessage } from "@/components/error-message";
 import { localToday } from "@/lib/dates";
-import { buttonPrimary, buttonSecondary, fieldInput } from "@/lib/styles";
+import { buttonPrimary, buttonSecondary } from "@/lib/styles";
 import { useAsyncAction } from "@/lib/use-async-action";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 
 export function BorrowRequestForm({ toolId }: { toolId: Id<"tools"> }) {
   const createRequest = useMutation(api.requests.create);
@@ -35,34 +37,20 @@ export function BorrowRequestForm({ toolId }: { toolId: Id<"tools"> }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          From
-          <input
-            required
-            type="date"
-            min={localToday()}
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className={`${fieldInput} font-normal`}
-          />
-        </label>
-        <label className="block text-sm font-medium">
-          Until
-          <input
-            required
-            type="date"
-            min={startDate || localToday()}
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className={`${fieldInput} font-normal`}
-          />
-        </label>
+        <DateField
+          label="From"
+          min={localToday()}
+          value={startDate}
+          onChange={setStartDate}
+        />
+        <DateField
+          label="Until"
+          min={startDate || localToday()}
+          value={endDate}
+          onChange={setEndDate}
+        />
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
-          {error}
-        </p>
-      )}
+      <ErrorMessage message={error} />
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={isPending} className={buttonPrimary}>
           {isPending ? "Sending…" : "Send request"}

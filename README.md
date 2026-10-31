@@ -4,6 +4,8 @@ A neighborhood tool-lending board: neighbors list tools, request to borrow from 
 
 **Stack:** Next.js (App Router), Clerk, Convex, n8n, TypeScript.
 
+**Docs:** [User guide](doc/user-guide.md) · [Architecture](doc/architecture.md)
+
 ## Local setup
 
 Prerequisites: Node 20+, Docker, a [Clerk](https://clerk.com) application, and a [Convex](https://convex.dev) account.
@@ -78,19 +80,22 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 
 ## Environment variables
 
-| Variable                            | Where it is set    | Purpose                               |
-| ----------------------------------- | ------------------ | ------------------------------------- |
-| `NEXT_PUBLIC_CONVEX_URL`            | `.env.local`       | Convex client URL                     |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `.env.local`       | Clerk client key                      |
-| `CLERK_SECRET_KEY`                  | `.env.local`       | Clerk server key                      |
-| `CLERK_JWT_ISSUER_DOMAIN`           | Convex             | Validates Clerk JWTs                  |
-| `N8N_WEBHOOK_URL`                   | Convex             | Request notification webhook          |
-| `N8N_WEBHOOK_SECRET`                | Convex, `n8n/.env` | Signs Convex to n8n calls             |
-| `CONVEX_INBOUND_SECRET`             | Convex, `n8n/.env` | Signs n8n to Convex calls             |
-| `CONVEX_SITE_URL`                   | `n8n/.env`         | Where n8n calls Convex                |
-| `N8N_ENCRYPTION_KEY`                | `n8n/.env`         | Encrypts n8n credentials at rest      |
-| `WEBHOOK_URL`                       | `n8n/.env`         | Public URL n8n advertises             |
-| `E2E_USER_EMAIL`                    | `.env.local`       | Optional user for signed-in e2e tests |
+| Variable                            | Where it is set    | Purpose                                              |
+| ----------------------------------- | ------------------ | ---------------------------------------------------- |
+| `NEXT_PUBLIC_CONVEX_URL`            | `.env.local`       | Convex client URL                                    |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `.env.local`       | Clerk client key                                     |
+| `CLERK_SECRET_KEY`                  | `.env.local`       | Clerk server key                                     |
+| `NEXT_PUBLIC_CONVEX_SITE_URL`       | `.env.local`       | Convex HTTP actions URL, copied to `CONVEX_SITE_URL` |
+| `CONVEX_DEPLOYMENT`                 | `.env.local`       | Written by `npx convex dev`                          |
+| `CLERK_JWT_ISSUER_DOMAIN`           | Convex             | Validates Clerk JWTs                                 |
+| `N8N_WEBHOOK_URL`                   | Convex             | Request notification webhook                         |
+| `N8N_WEBHOOK_SECRET`                | Convex, `n8n/.env` | Signs Convex to n8n calls                            |
+| `CONVEX_INBOUND_SECRET`             | Convex, `n8n/.env` | Signs n8n to Convex calls                            |
+| `CONVEX_SITE_URL`                   | `n8n/.env`         | Where n8n calls Convex                               |
+| `N8N_ENCRYPTION_KEY`                | `n8n/.env`         | Encrypts n8n credentials at rest                     |
+| `WEBHOOK_URL`                       | `n8n/.env`         | Public URL n8n advertises                            |
+| `N8N_SECURE_COOKIE`                 | `n8n/.env`         | Allows the editor login over local HTTP              |
+| `E2E_USER_EMAIL`                    | `.env.local`       | Optional user for signed-in e2e tests                |
 
 ## Development
 
@@ -143,21 +148,22 @@ convex/             Backend: schema, queries, mutations, HTTP endpoints
   reminders.ts      Overdue loans and idempotent write-backs
   http.ts           Endpoints called by n8n
 src/app/            Public page and the signed-in (app) route group
-src/components/     Shared UI
+src/features/       Components that read or write Convex data, by domain
+src/components/     Presentational components
 src/proxy.ts        Clerk session handling
 n8n/workflows/      Exported workflow JSON (no secrets)
 e2e/                Playwright tests
 docker-compose.yml  Local n8n, plus the optional proxy and tunnel
 ```
 
-**Data model.** An approved `borrowRequests` row is the loan, so there is one status machine and no request and loan tables to keep in sync: `pending -> approved -> returned`, or `pending -> declined | cancelled`. Dates are `YYYY-MM-DD` strings, which sort correctly and avoid timezone drift.
+**Data model.** An approved `borrowRequests` row is the loan, so there is one status machine and no request and loan tables to keep in sync: `pending -> approved -> returned`, or `pending -> declined | cancelled`. Removing a listing as an admin takes `approved -> closed`. Dates are `YYYY-MM-DD` strings, which sort correctly and avoid timezone drift.
 
 **Borrowing rules.**
 
 - A tool has one active loan at a time and counts as on loan from approval until it is returned, which keeps availability a simple status rather than a date calculation.
 - Approving a request declines pending requests with overlapping dates. Non-overlapping requests stay pending and can be approved after the return.
 - Only the lender can mark a loan returned, so a borrower cannot clear an overdue loan without giving the tool back.
-- Requests keep a copy of the tool's name, so history survives the listing being deleted. Deleting a listing cancels its pending requests and is blocked while the tool is on loan.
+- Requests keep a copy of the tool's name, so history survives the listing being deleted. Deleting a listing cancels its pending requests. Owners can't delete a tool that is on loan. Admins can, which marks the loan `closed`, not `returned`, because nobody confirmed the tool came back, and which keeps a missing lender from leaving a listing stuck.
 - Every status change goes through `setRequestStatus` in `convex/lib/borrowRequests.ts`, which enforces the allowed transitions.
 
 ## Security and data minimization
@@ -167,7 +173,7 @@ docker-compose.yml  Local n8n, plus the optional proxy and tunnel
 - **Contact details are shared only when needed.** Each party sees the other's email only while a loan is active, to arrange the handover.
 - **The public query returns an explicit projection** of name and category, so owner details cannot leak when the schema grows.
 - **n8n's editor binds to loopback** and its image version is pinned.
-- **Calls are signed in both directions** with HMAC-SHA256 over the timestamp and raw body. Calls to Convex also sign the method and path, so a captured signature can't be reused on another endpoint. Requests older than 5 minutes are rejected, and signatures are compared in constant time.
+- **Calls are signed in both directions** with HMAC-SHA256 over the timestamp and raw body. Calls to Convex also sign the method, path and query, so a captured signature can't be reused on another endpoint or with another cursor. Requests older than 5 minutes are rejected, and signatures are compared in constant time.
 - **Secrets stay out of exported workflows.** They reference environment variables by name. The trade-off is that any workflow on the instance can read those values, so only trusted people should have n8n logins.
 - **The tunnel only exposes webhooks,** through a proxy that returns 404 for n8n's editor and API.
 - **Webhooks carry the minimum:** the recipient's name and email, the tool's name, and the dates. Logged notifications mask the email, and n8n deletes execution data after 7 days.
@@ -177,6 +183,7 @@ docker-compose.yml  Local n8n, plus the optional proxy and tunnel
 - **Notifications can't be lost by a crash mid-change.** The status change, its notification record, and its scheduled delivery commit in one transaction.
 - **Delivery retries with backoff,** up to 5 attempts over about 40 minutes, then shows as failed under **Admin > Automation**. Delivery is at-least-once, so each webhook carries a stable `eventId` for a real provider to drop repeats.
 - **Reminder write-backs are idempotent.** A loan and date map to one record, so retries return `duplicate`. Loans already reminded that day are left out of the next fetch.
+- **Every overdue loan is reached.** The workflow follows the fetch's cursor through all pages, so a large backlog can't hide newer loans. A borrower with no email is reported as a failed reminder instead of being skipped.
 - **Failed workflow runs are visible.** An error workflow logs them and reports them to Convex, which shows them under **Admin > Automation**.
 
 ## Running in production
@@ -185,7 +192,7 @@ This is built to run locally. I would change these before real users rely on it,
 
 **Must have**
 
-- **Send real email.** The workflows only log each notification, so nobody receives anything yet. I would add a provider such as Postmark or Resend to n8n, passing `eventId` as its idempotency key so retries can't send a second email.
+- **Send real email.** The workflows only log each notification, so nobody receives anything yet. I would add a provider such as Postmark or Resend to n8n, passing the `eventId` or reminder `idempotencyKey` that each workflow already receives so retries can't send a second email.
 - **Host n8n properly.** The quick tunnel's URL changes on restart, and n8n's default SQLite database doesn't suit a production instance. I would use a fixed domain with TLS, Postgres, and a backed-up `N8N_ENCRYPTION_KEY`, and keep the editor behind a VPN or SSO.
 - **Separate the environments.** Use production Clerk and Convex instances, with different secrets from development.
 - **Tighten secret handling.** Workflows read secrets from environment variables, which any workflow can access. I would move them to a secrets manager or n8n credentials, then set `N8N_BLOCK_ENV_ACCESS_IN_NODE` to `true`. Rotating a signing secret today needs both sides changed at once, so verification should accept two secrets during the switch.

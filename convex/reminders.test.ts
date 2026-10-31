@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { addTool, addUser, createTest, type TestConvex } from "./test.helpers";
+import {
+  addTool,
+  addUser,
+  createTest,
+  FIRST_PAGE,
+  type TestConvex,
+} from "./test.helpers";
 
 const TODAY = "2026-06-15";
 
@@ -30,7 +36,15 @@ async function setupLoan(endDate = "2026-06-12") {
       endDate,
     }),
   );
-  return { t, owner, loanId };
+  return { t, owner, borrower, loanId };
+}
+
+async function listOverdue(
+  t: TestConvex,
+  today = TODAY,
+  paginationOpts: { numItems: number; cursor: string | null } = FIRST_PAGE,
+) {
+  return t.query(internal.reminders.listOverdue, { today, paginationOpts });
 }
 
 function getReminders(t: TestConvex, requestId: Id<"borrowRequests">) {
@@ -47,13 +61,12 @@ describe("reminders.listOverdue", () => {
   test("returns overdue loans with only the fields a reminder needs", async () => {
     const { t, loanId } = await setupLoan();
 
-    const loans = await t.query(internal.reminders.listOverdue, {
-      today: TODAY,
-    });
+    const { page } = await listOverdue(t);
 
-    expect(loans).toEqual([
+    expect(page).toEqual([
       {
         loanId,
+        idempotencyKey: `overdue_reminder:${loanId}:${TODAY}`,
         toolName: "Drill",
         dueDate: "2026-06-12",
         daysOverdue: 3,
@@ -62,11 +75,53 @@ describe("reminders.listOverdue", () => {
     ]);
   });
 
+  test("keeps a borrower with no email, so the failure can be reported", async () => {
+    const { t, borrower, loanId } = await setupLoan();
+    await t.run((ctx) =>
+      ctx.db.patch("users", borrower.id, { email: undefined }),
+    );
+
+    const { page } = await listOverdue(t);
+
+    expect(page).toMatchObject([
+      { loanId, borrower: { name: "borrower", email: null } },
+    ]);
+  });
+
+  test("reaches every loan across pages, however many were already reminded", async () => {
+    const { t, owner, borrower, loanId } = await setupLoan("2026-06-10");
+    const newerToolId = await addTool(owner.client, "Saw");
+    const newerLoanId = await borrower.client.mutation(api.requests.create, {
+      toolId: newerToolId,
+      startDate: TODAY,
+      endDate: "2026-06-20",
+    });
+    await owner.client.mutation(api.requests.approve, {
+      requestId: newerLoanId,
+    });
+    await t.run((ctx) =>
+      ctx.db.patch("borrowRequests", newerLoanId, { endDate: "2026-06-12" }),
+    );
+    await t.mutation(internal.reminders.recordReminder, {
+      loanId,
+      reminderDate: TODAY,
+      status: "sent",
+    });
+
+    const first = await listOverdue(t, TODAY, { numItems: 1, cursor: null });
+    const second = await listOverdue(t, TODAY, {
+      numItems: 1,
+      cursor: first.continueCursor,
+    });
+
+    expect(first.page).toEqual([]);
+    expect(first.isDone).toBe(false);
+    expect(second.page).toMatchObject([{ loanId: newerLoanId }]);
+  });
+
   test("skips loans due today or later", async () => {
     const { t } = await setupLoan(TODAY);
-    expect(
-      await t.query(internal.reminders.listOverdue, { today: TODAY }),
-    ).toEqual([]);
+    expect((await listOverdue(t)).page).toEqual([]);
   });
 
   test("skips returned loans", async () => {
@@ -74,9 +129,7 @@ describe("reminders.listOverdue", () => {
     await owner.client.mutation(api.requests.markReturned, {
       requestId: loanId,
     });
-    expect(
-      await t.query(internal.reminders.listOverdue, { today: TODAY }),
-    ).toEqual([]);
+    expect((await listOverdue(t)).page).toEqual([]);
   });
 
   test("skips loans already reminded today, but not on later days", async () => {
@@ -87,12 +140,8 @@ describe("reminders.listOverdue", () => {
       status: "sent",
     });
 
-    expect(
-      await t.query(internal.reminders.listOverdue, { today: TODAY }),
-    ).toEqual([]);
-    expect(
-      await t.query(internal.reminders.listOverdue, { today: "2026-06-16" }),
-    ).toHaveLength(1);
+    expect((await listOverdue(t)).page).toEqual([]);
+    expect((await listOverdue(t, "2026-06-16")).page).toHaveLength(1);
   });
 
   test("retries a loan whose reminder failed today", async () => {
@@ -103,9 +152,7 @@ describe("reminders.listOverdue", () => {
       status: "failed",
     });
 
-    expect(
-      await t.query(internal.reminders.listOverdue, { today: TODAY }),
-    ).toHaveLength(1);
+    expect((await listOverdue(t)).page).toHaveLength(1);
   });
 });
 

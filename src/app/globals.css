@@ -3,61 +3,77 @@
 :root {
   /* Draws native controls, such as the date picker icon, to suit the theme. */
   color-scheme: light dark;
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: var(--color-zinc-500);
-  --line: var(--color-zinc-200);
-  --input: var(--color-zinc-300);
-  --focus-ring: var(--color-zinc-500);
-  --surface-hover: var(--color-zinc-100);
-  --primary: var(--color-zinc-900);
-  --primary-hover: var(--color-zinc-700);
-  --on-primary: var(--color-white);
+  /* Workshop palette: sage paper, machine-green ink, manila tags on pegboard. */
+  --background: #f1f4ef;
+  --foreground: #1c2a23;
+  --surface: #fafbf9;
+  --muted: #56665d;
+  --line: #d3dbd3;
+  --input: #a9b6ac;
+  --focus-ring: #2f5d49;
+  --surface-hover: #e3e9e2;
+  --primary: #2f5d49;
+  --primary-hover: #24493a;
+  --on-primary: #f1f4ef;
   --danger: var(--color-red-700);
   --danger-solid: var(--color-red-700);
   --danger-solid-hover: var(--color-red-600);
   --on-danger: var(--color-white);
   --option-surface: Canvas;
-  --success-surface: var(--color-emerald-100);
-  --success-ink: var(--color-emerald-800);
+  --board: #dce3da;
+  --board-hole: #bcc7bd;
+  --tag: #ead9a0;
+  --tag-edge: #c9b577;
+  --tag-ink: #3b3015;
+  --success-surface: #d8eadf;
+  --success-ink: #1f5a3d;
   --warning-surface: var(--color-amber-100);
   --warning-ink: var(--color-amber-800);
   --info-surface: var(--color-sky-100);
   --info-ink: var(--color-sky-800);
   --danger-surface: var(--color-red-100);
   --danger-ink: var(--color-red-800);
-  --neutral-surface: var(--color-zinc-100);
-  --neutral-ink: var(--color-zinc-700);
+  --neutral-surface: #e3e9e2;
+  --neutral-ink: #3f4d45;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --line: var(--color-zinc-800);
-    --input: var(--color-zinc-700);
-    --surface-hover: var(--color-zinc-800);
-    --primary: var(--color-zinc-100);
-    --primary-hover: var(--color-zinc-300);
-    --on-primary: var(--color-zinc-900);
+    --background: #131b17;
+    --foreground: #e3eae4;
+    --surface: #18221d;
+    --muted: #94a39a;
+    --line: #2a3630;
+    --input: #46554c;
+    --focus-ring: #a7d0ba;
+    --surface-hover: #1e2924;
+    --primary: #a7d0ba;
+    --primary-hover: #c2e0cf;
+    --on-primary: #13201a;
     --danger: var(--color-red-400);
-    --option-surface: var(--color-zinc-900);
-    --success-surface: var(--color-emerald-950);
-    --success-ink: var(--color-emerald-300);
+    --option-surface: #18221d;
+    --board: #1a241f;
+    --board-hole: #0e1411;
+    --tag: #3f3820;
+    --tag-edge: #5a5030;
+    --tag-ink: #eedfa8;
+    --success-surface: #173326;
+    --success-ink: #9fd5b6;
     --warning-surface: var(--color-amber-950);
     --warning-ink: var(--color-amber-300);
     --info-surface: var(--color-sky-950);
     --info-ink: var(--color-sky-300);
     --danger-surface: var(--color-red-950);
     --danger-ink: var(--color-red-300);
-    --neutral-surface: var(--color-zinc-800);
-    --neutral-ink: var(--color-zinc-300);
+    --neutral-surface: #222d27;
+    --neutral-ink: #c0ccc4;
   }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-input: var(--input);
@@ -71,6 +87,8 @@
   --color-danger-solid-hover: var(--danger-solid-hover);
   --color-on-danger: var(--on-danger);
   --color-option-surface: var(--option-surface);
+  --color-tag: var(--tag);
+  --color-tag-ink: var(--tag-ink);
   --color-success-surface: var(--success-surface);
   --color-success-ink: var(--success-ink);
   --color-warning-surface: var(--warning-surface);
@@ -81,12 +99,65 @@
   --color-danger-ink: var(--danger-ink);
   --color-neutral-surface: var(--neutral-surface);
   --color-neutral-ink: var(--neutral-ink);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display-face);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+/* A pegboard panel: evenly spaced holes, like the wall of a garage workshop. */
+.pegboard {
+  background-color: var(--board);
+  background-image: radial-gradient(
+    circle,
+    var(--board-hole) 2.5px,
+    transparent 3px
+  );
+  background-size: 26px 26px;
+  background-position: 13px 13px;
+}
+
+/* A manila shipping tag with clipped top corners and a punched hole. */
+.tool-tag {
+  position: relative;
+  background: var(--tag);
+  color: var(--tag-ink);
+  padding: 2.5rem 1rem 1rem;
+  clip-path: polygon(
+    16px 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% 100%,
+    0 100%,
+    0 16px
+  );
+}
+
+.tool-tag::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: var(--board);
+  box-shadow: inset 0 0 0 2px var(--tag-edge);
+}
+
+/* Tags hang slightly askew, the way they do on a real board. */
+.tag-rack > li:nth-child(3n + 1) .tool-tag {
+  rotate: -1.5deg;
+}
+.tag-rack > li:nth-child(3n + 2) .tool-tag {
+  rotate: 1deg;
+}
+.tag-rack > li:nth-child(3n) .tool-tag {
+  rotate: -0.5deg;
 }

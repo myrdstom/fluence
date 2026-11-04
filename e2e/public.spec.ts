@@ -11,7 +11,7 @@ test.describe("signed-out visitor", () => {
     await expect(
       page.getByRole("button", { name: "Sign in to lend or borrow" }),
     ).toBeVisible();
-    await expect(page.getByText("Available now")).toBeVisible();
+    await expect(page.getByText("On the board now")).toBeVisible();
   });
 
   test("never sees lender details on the public list", async ({ page }) => {

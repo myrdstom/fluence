@@ -1,17 +1,13 @@
 "use client";
 
 import { useConvexAuth, useQuery } from "convex/react";
-import Link from "next/link";
 import { api } from "@convex/_generated/api";
+import { NavLink } from "@/components/nav-link";
 
 /** Hiding the link is only a convenience. Convex rejects non-admin calls regardless. */
-export function AdminNavLink({ className }: { className: string }) {
+export function AdminNavLink() {
   const { isAuthenticated } = useConvexAuth();
   const me = useQuery(api.users.me, isAuthenticated ? {} : "skip");
   if (me?.role !== "admin") return null;
-  return (
-    <Link href="/admin" className={className}>
-      Admin
-    </Link>
-  );
+  return <NavLink href="/admin">Admin</NavLink>;
 }
